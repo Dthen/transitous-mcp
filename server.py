@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Transitous MCP Server — free public transit routing via MOTIS API."""
 
-import json, sys, math, time as _time, urllib.request, urllib.parse, urllib.error
+import json, sys, math, urllib.request, urllib.parse, urllib.error
 from datetime import datetime, timezone
 
 API_BASE = "https://api.transitous.org"
@@ -131,19 +131,21 @@ def geocode_stop(query):
 
 def transit_departures(stop_id, time=None, count=10, direction="DEPARTURES"):
     """Live departure/arrival board for a stop."""
-    now = int(_time.time())
-    params = {"stop": stop_id, "time": time if time else now,
-              "count": count, "direction": direction}
+    params = {"stopId": stop_id, "n": count if count else 10}
+    if time: params["time"] = time
+    if direction and direction != "DEPARTURES":
+        params["direction"] = direction
     data = api_get("/api/v6/stoptimes", params)
     if "error" in data: return data
     times = data.get("stopTimes", data) if isinstance(data, dict) else []
     if not isinstance(times, list): return {"error": "Unexpected API response"}
     results = []
     for st in times[:count]:
+        place = st.get("place", {})
         entry = {"route": st.get("routeShortName", "?"),
                  "headsign": st.get("headsign", "?"),
-                 "scheduled": fmt_time(st.get("scheduledTime", "")),
-                 "realTime": fmt_time(st.get("realTime", ""))}
+                 "scheduled": fmt_time(place.get("scheduledDeparture", place.get("scheduledArrival", ""))),
+                 "realTime": fmt_time(place.get("departure", place.get("arrival", "")))}
         if st.get("cancelled"): entry["cancelled"] = True
         delay = st.get("delaySeconds", 0)
         if delay: entry["delayMinutes"] = delay // 60
@@ -176,10 +178,10 @@ def transit_nearby_stops(lat, lon, radius=1000):
     return {"center": [lat, lon], "radius_m": radius, "count": len(results), "stops": results}
 
 def reverse_geocode(lat, lon):
-    """Convert coordinates to the nearest stop or address."""
+    """Convert coordinates to the nearest transit stop or address."""
     err = validate_coords(("point", lat, lon))
     if err: return err
-    data = api_get("/api/v1/reverse-geocode", {"lat": lat, "lon": lon})
+    data = api_get("/api/v1/reverse-geocode", {"place": f"{lat},{lon}"})
     if "error" in data: return data
     return {"lat": lat, "lon": lon, "result": data}
 
