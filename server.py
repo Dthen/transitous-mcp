@@ -36,7 +36,8 @@ def fmt_dur(s):
 def fmt_time(iso):
     try:
         dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
-        return dt.strftime("%H:%M")
+        local = dt.astimezone()  # convert to system local time (BST/GMT)
+        return local.strftime("%H:%M")
     except: return iso
 
 def plan_route(from_lat, from_lon, to_lat, to_lon,
@@ -74,7 +75,8 @@ def plan_route(from_lat, from_lon, to_lat, to_lon,
                  "duration": fmt_dur(leg.get("duration",0)),
                  "departure": fmt_time(leg.get("from",{}).get("departure","")),
                  "arrival": fmt_time(leg.get("to",{}).get("arrival",""))}
-            if leg.get("route"): l["route"] = leg["route"]
+            if leg.get("routeShortName"): l["route"] = leg["routeShortName"]
+            elif leg.get("routeLongName"): l["route"] = leg["routeLongName"]
             if leg.get("headsign"): l["headsign"] = leg["headsign"]
             legs.append(l)
         results.append({"option": len(results)+1,
@@ -119,7 +121,7 @@ TOOLS = [
 
 def handle_call(name, args):
     if name == "transit_plan":
-        w = (args.get("max_walking_minutes") or 15) * 60
+        w = (args.get("max_walking_minutes") or 30) * 60  # default 30 min walk
         return plan_route(args["from_lat"], args["from_lon"],
                           args["to_lat"], args["to_lon"],
                           time=args.get("time"), arrive_by=args.get("arrive_by",False),
