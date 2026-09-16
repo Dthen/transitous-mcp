@@ -507,10 +507,10 @@ def main():
         except: continue
         rid = req.get("id")
         method = req.get("method","")
-        if method == "initialize":
-            send({"jsonrpc":"2.0","id":rid,"result":{
-                "protocolVersion":"2024-11-05","capabilities":{"tools":{}},
-                "serverInfo":{"name":"transitous-mcp","version":"2.0.0"}}})
+        if method == "server/discover":
+            send({"jsonrpc":"2.0","id":rid,"result":era_result({
+                "supportedVersions":[ERA_VERSION],
+                "capabilities":{"tools":{}}})})
         elif method == "tools/list":
             send({"jsonrpc":"2.0","id":rid,"result":era_result({"tools":TOOLS})})
         elif method == "tools/call":
