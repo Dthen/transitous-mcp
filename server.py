@@ -4,6 +4,18 @@
 import json, sys, math, urllib.request, urllib.parse, urllib.error
 from datetime import datetime, timezone
 
+ERA_VERSION = "2026-07-28"
+SERVER_INFO = {"name": "transitous-mcp", "version": "2.1.0"}   # D7 minor bump
+ERA_RESULT_FIELDS = {"resultType": "complete", "ttlMs": 0, "cacheScope": "private"}
+RESULT_META = {"io.modelcontextprotocol/serverInfo": SERVER_INFO}
+
+def era_result(payload):
+    """A result carrying the era-strict fields D3 mandates on every response."""
+    out = dict(payload)
+    out.update(ERA_RESULT_FIELDS)
+    out["_meta"] = RESULT_META
+    return out
+
 API_BASE = "https://api.transitous.org"
 UA = "HermesAgent/1.0 (transitous-mcp; kimbo@hermes)"
 
@@ -500,12 +512,12 @@ def main():
                 "protocolVersion":"2024-11-05","capabilities":{"tools":{}},
                 "serverInfo":{"name":"transitous-mcp","version":"2.0.0"}}})
         elif method == "tools/list":
-            send({"jsonrpc":"2.0","id":rid,"result":{"tools":TOOLS}})
+            send({"jsonrpc":"2.0","id":rid,"result":era_result({"tools":TOOLS})})
         elif method == "tools/call":
             try:
                 result = handle_call(req["params"]["name"], req["params"].get("arguments",{}))
-                send({"jsonrpc":"2.0","id":rid,"result":{
-                    "content":[{"type":"text","text":json.dumps(result,indent=2)}]}})
+                payload = {"content":[{"type":"text","text":json.dumps(result,indent=2)}]}
+                send({"jsonrpc":"2.0","id":rid,"result":era_result(payload)})
             except Exception as e:
                 send({"jsonrpc":"2.0","id":rid,"error":{"code":-32603,"message":str(e)}})
         elif method.startswith("notifications/"): pass
