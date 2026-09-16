@@ -1,0 +1,415 @@
+[
+  {
+    "name": "transit_plan",
+    "description": "Plan a public transit route between two locations. Returns step-by-step itineraries with modes, times, and transfers.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "from_lat": {
+          "type": "number"
+        },
+        "from_lon": {
+          "type": "number"
+        },
+        "to_lat": {
+          "type": "number"
+        },
+        "to_lon": {
+          "type": "number"
+        },
+        "time": {
+          "type": "string",
+          "description": "ISO datetime (default: now)"
+        },
+        "arrive_by": {
+          "type": "boolean"
+        },
+        "max_transfers": {
+          "type": "integer",
+          "description": "default: 5"
+        },
+        "transit_modes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "TRANSIT",
+              "BUS",
+              "COACH",
+              "TRAM",
+              "SUBWAY",
+              "SUBURBAN",
+              "REGIONAL_RAIL",
+              "RAIL",
+              "HIGHSPEED_RAIL",
+              "LONG_DISTANCE",
+              "NIGHT_RAIL",
+              "FERRY",
+              "AIRPLANE",
+              "FUNICULAR",
+              "AERIAL_LIFT"
+            ]
+          }
+        },
+        "num_itineraries": {
+          "type": "integer",
+          "description": "default: 3"
+        },
+        "max_walking_minutes": {
+          "type": "integer",
+          "description": "Max walk per leg in minutes",
+          "default": 30
+        }
+      },
+      "required": [
+        "from_lat",
+        "from_lon",
+        "to_lat",
+        "to_lon"
+      ]
+    }
+  },
+  {
+    "name": "transit_geocode",
+    "description": "Geocode a place name/address/stop to coordinates.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Max results (default: 5)"
+        }
+      },
+      "required": [
+        "query"
+      ]
+    }
+  },
+  {
+    "name": "transit_departures",
+    "description": "Live departure board for a stop. Use stop IDs from geocode or nearby_stops.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "stop": {
+          "type": "string",
+          "description": "Stop ID"
+        },
+        "count": {
+          "type": "integer",
+          "description": "default: 10"
+        },
+        "time": {
+          "type": "string",
+          "description": "ISO datetime (default: now)"
+        },
+        "window": {
+          "type": "integer",
+          "description": "Time window in seconds"
+        }
+      },
+      "required": [
+        "stop"
+      ]
+    }
+  },
+  {
+    "name": "transit_nearby_stops",
+    "description": "Find transit stops near a location.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "lat": {
+          "type": "number"
+        },
+        "lon": {
+          "type": "number"
+        },
+        "radius": {
+          "type": "integer",
+          "description": "Meters (default: 1000, max: 5000)"
+        }
+      },
+      "required": [
+        "lat",
+        "lon"
+      ]
+    }
+  },
+  {
+    "name": "transit_reverse_geocode",
+    "description": "Convert coordinates to the nearest transit stop or address.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "lat": {
+          "type": "number"
+        },
+        "lon": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "lat",
+        "lon"
+      ]
+    }
+  },
+  {
+    "name": "transit_trip",
+    "description": "Get full trip details including stop sequence. Use tripId from plan or departures results.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "trip_id": {
+          "type": "string",
+          "description": "Trip ID from plan/departures"
+        }
+      },
+      "required": [
+        "trip_id"
+      ]
+    }
+  },
+  {
+    "name": "transit_health",
+    "description": "Check if the Transitous API server is healthy.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "transit_reachable",
+    "description": "Find destinations reachable within a time budget (isochrones).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "lat": {
+          "type": "number"
+        },
+        "lon": {
+          "type": "number"
+        },
+        "max_time_min": {
+          "type": "integer",
+          "description": "Maximum travel time in minutes"
+        },
+        "time": {
+          "type": "string",
+          "description": "ISO datetime (default: now)"
+        },
+        "arrive_by": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "lat",
+        "lon",
+        "max_time_min"
+      ]
+    }
+  },
+  {
+    "name": "transit_refresh",
+    "description": "Refresh an itinerary with real-time updates. Use itinerary ID from plan results.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "itinerary_id": {
+          "type": "string",
+          "description": "Itinerary ID from transit_plan"
+        }
+      },
+      "required": [
+        "itinerary_id"
+      ]
+    }
+  },
+  {
+    "name": "transit_rentals",
+    "description": "Find nearby rental bikes, scooters, and cars (GBFS sharing systems).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "lat": {
+          "type": "number"
+        },
+        "lon": {
+          "type": "number"
+        },
+        "radius": {
+          "type": "integer",
+          "description": "Search radius in meters (default: 1000)"
+        }
+      },
+      "required": [
+        "lat",
+        "lon"
+      ]
+    }
+  },
+  {
+    "name": "transit_one_to_many",
+    "description": "Street routing from one origin to multiple destinations.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "from_lat": {
+          "type": "number"
+        },
+        "from_lon": {
+          "type": "number"
+        },
+        "destinations": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "mode": {
+          "type": "string",
+          "description": "WALK, BIKE, or CAR (default: WALK)"
+        },
+        "max_sec": {
+          "type": "integer",
+          "description": "Max travel time in seconds (default: 3600)"
+        },
+        "arrive_by": {
+          "type": "boolean",
+          "description": "If true, many-to-one routing"
+        }
+      },
+      "required": [
+        "from_lat",
+        "from_lon",
+        "destinations"
+      ]
+    }
+  },
+  {
+    "name": "transit_one_to_many_transit",
+    "description": "Transit routing from one origin to multiple destinations. Like transit_plan but for N destinations in one call.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "from_lat": {
+          "type": "number"
+        },
+        "from_lon": {
+          "type": "number"
+        },
+        "destinations": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "time": {
+          "type": "string",
+          "description": "ISO datetime (default: now)"
+        },
+        "arrive_by": {
+          "type": "boolean",
+          "description": "If true, many-to-one routing"
+        },
+        "max_transfers": {
+          "type": "integer",
+          "description": "Max transfers (default: 5)"
+        },
+        "transit_modes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "TRANSIT",
+              "BUS",
+              "COACH",
+              "TRAM",
+              "SUBWAY",
+              "SUBURBAN",
+              "REGIONAL_RAIL",
+              "RAIL",
+              "HIGHSPEED_RAIL",
+              "LONG_DISTANCE",
+              "NIGHT_RAIL",
+              "FERRY",
+              "AIRPLANE",
+              "FUNICULAR",
+              "AERIAL_LIFT"
+            ]
+          }
+        },
+        "max_walking_minutes": {
+          "type": "integer",
+          "description": "Max walk per leg in minutes",
+          "default": 15
+        },
+        "max_travel_minutes": {
+          "type": "integer",
+          "description": "Max total travel time in minutes",
+          "default": 60
+        }
+      },
+      "required": [
+        "from_lat",
+        "from_lon",
+        "destinations"
+      ]
+    }
+  },
+  {
+    "name": "transit_map_trips",
+    "description": "Active transit trips in a bounding box. Like a live transit map \u2014 see what buses/trains are near a location right now.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "min_lat": {
+          "type": "number"
+        },
+        "min_lon": {
+          "type": "number"
+        },
+        "max_lat": {
+          "type": "number"
+        },
+        "max_lon": {
+          "type": "number"
+        },
+        "zoom": {
+          "type": "integer",
+          "description": "Zoom level 1-19 (default: 12). High zoom=local, low=long-distance"
+        },
+        "start_time": {
+          "type": "string",
+          "description": "ISO datetime (default: now)"
+        },
+        "end_time": {
+          "type": "string",
+          "description": "ISO datetime (default: start + 30 min)"
+        }
+      },
+      "required": [
+        "min_lat",
+        "min_lon",
+        "max_lat",
+        "max_lon",
+        "start_time",
+        "end_time"
+      ]
+    }
+  }
+]
