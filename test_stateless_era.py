@@ -95,3 +95,43 @@ def test_tools_list_byte_identical_to_golden():      # D4 freeze — UNCONDITION
                        json.dumps(a[key], sort_keys=True)
             assert "outputSchema" not in a
     finally: p.kill(); p.wait()
+
+def _call(p, name, arguments=None, rid=4):
+    return rpc(p, {"jsonrpc":"2.0","id":rid,"method":"tools/call",
+        "params":{"name":name,"arguments":arguments or {}}})
+
+def test_tools_call_result_carries_the_triple():
+    p = start()
+    try:
+        r = _call(p, "transit_one_to_many",
+                  {"from_lat": 51.5, "from_lon": -0.12, "destinations": []})
+        res = r["result"]                          # tool-level errors are RESULTS
+        assert res["resultType"] == "complete" and res["ttlMs"] == 0 \
+               and res["cacheScope"] == "private"
+        assert isinstance(res["content"], list) and res["content"][0]["type"] == "text"
+    finally: p.kill(); p.wait()
+
+def test_tools_call_unknown_tool_is_error_result_not_crash():
+    p = start()
+    try:
+        res = _call(p, "no_such_tool_xyz")["result"]
+        assert res.get("isError") is True          # legacy lacks it → RED (pin flips green in T09)
+        assert "Unknown tool" in res["content"][0]["text"]
+        assert "structuredContent" not in res      # §4 trap: never emit
+    finally: p.kill(); p.wait()
+
+def test_tools_call_missing_params_is_jsonrpc_32602():
+    p = start()
+    try:
+        r = rpc(p, {"jsonrpc":"2.0","id":5,"method":"tools/call"})   # no params at all
+        assert r["error"]["code"] == -32602        # legacy KeyErrors → -32603 → RED
+        assert "result" not in r
+    finally: p.kill(); p.wait()
+
+def test_tools_call_non_string_name_is_32602():
+    p = start()
+    try:
+        r = rpc(p, {"jsonrpc":"2.0","id":6,"method":"tools/call",
+                    "params":{"name": 42}})
+        assert r["error"]["code"] == -32602
+    finally: p.kill(); p.wait()
