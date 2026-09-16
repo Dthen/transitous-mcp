@@ -46,3 +46,19 @@ def test_discover_works_without_params():        # §2: "may arrive with no para
         assert r["id"] == 7 and r["result"]["supportedVersions"] == [ERA]
     finally:
         p.kill(); p.wait()
+
+def test_initialize_returns_32601_and_never_hangs_or_closes():
+    # D2 stateless-only: no initialize branch; catch-all answers -32601.
+    # The SAME pipes must then serve discover (Hermes auto-mode fallback path).
+    p = start()
+    try:
+        r = rpc(p, {"jsonrpc":"2.0","id":1,"method":"initialize",
+                    "params":{"protocolVersion":"2024-11-05","capabilities":{},
+                              "clientInfo":{"name":"probe","version":"0"}}})
+        assert r["id"] == 1 and r["error"]["code"] == -32601
+        assert isinstance(r["error"]["message"], str) and r["error"]["message"]
+        d = discover(p, rid=2)                       # liveness on same pipes
+        assert d["id"] == 2 and d["result"]["supportedVersions"] == [ERA]
+        assert p.poll() is None                      # never exit on a rejected method
+    finally:
+        p.kill(); p.wait()
