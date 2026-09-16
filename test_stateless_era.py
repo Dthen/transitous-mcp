@@ -181,3 +181,36 @@ def test_non_string_method_routes_as_unknown_not_crash():
         assert r["error"]["code"] == -32601
         assert p.poll() is None
     finally: p.kill(); p.wait()       # RED today (server-killer regression pin)
+
+# ── Card T07: §7 binary G→D→G→L + §1 id-less silence ──
+
+def test_binary_garbage_line_does_not_kill_the_server():
+    # REFERENCE §1 reconfigure + §7 G→D→G→L; legacy lacks errors="replace" → RED
+    discover_line = json.dumps({"jsonrpc":"2.0","id":1,"method":"server/discover"})
+    tools_line    = json.dumps({"jsonrpc":"2.0","id":2,"method":"tools/list"})
+    p = subprocess.Popen([PROD_PY, SERVER], stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, cwd=ROOT)
+    try:
+        p.stdin.write(b"\xff\xfe\x00garbage\n")                     # G — invalid UTF-8 first
+        p.stdin.write(discover_line.encode() + b"\n"); p.stdin.flush()      # D
+        resp = json.loads(p.stdout.readline())
+        assert resp["id"] == 1 \
+               and resp["result"]["supportedVersions"] == ["2026-07-28"]  # §7 skeleton-verbatim (UNCONDITIONAL)
+        p.stdin.write(b"\x00\xff\n")                                # G — mid-stream garbage
+        p.stdin.write(tools_line.encode() + b"\n"); p.stdin.flush()         # L
+        resp2 = json.loads(p.stdout.readline())                     # id==2 ⇒ no phantom reply to G
+        assert resp2["id"] == 2 and "result" in resp2
+        assert p.poll() is None
+        p.stdin.close(); assert p.wait(timeout=5) == 0              # clean EOF exit (§7)
+    finally:
+        if p.poll() is None: p.kill(); p.wait()
+
+def test_id_less_unknown_request_gets_no_response():
+    # §1: no `id` ⇒ notification — even unknown methods must NOT get an error reply
+    p = start()
+    try:
+        p.stdin.write(json.dumps({"jsonrpc":"2.0","method":"definitely/not/a/method"})+"\n")
+        p.stdin.flush()
+        r = rpc(p, {"jsonrpc":"2.0","id":21,"method":"tools/list"})
+        assert r["id"] == 21            # legacy answers the phantom with "id": null → r["id"]==None ⇒ RED
+    finally: p.kill(); p.wait()
