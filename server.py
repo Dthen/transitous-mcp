@@ -514,11 +514,19 @@ def main():
         elif method == "tools/list":
             send({"jsonrpc":"2.0","id":rid,"result":era_result({"tools":TOOLS})})
         elif method == "tools/call":
+            params = req.get("params")
+            if not isinstance(params, dict) or not isinstance(params.get("name"), str):
+                send({"jsonrpc":"2.0","id":rid,"error":{"code":-32602,
+                    "message":"missing required param: params (with string 'name')"}})
+                continue
             try:
-                result = handle_call(req["params"]["name"], req["params"].get("arguments",{}))
-                payload = {"content":[{"type":"text","text":json.dumps(result,indent=2)}]}
+                result = handle_call(params["name"], params.get("arguments", {}))
+                is_err = isinstance(result, dict) and ("error" in result or "transport_error" in result)
+                payload = {"content": [{"type":"text","text":json.dumps(result,indent=2)}]}
+                if is_err:
+                    payload["isError"] = True
                 send({"jsonrpc":"2.0","id":rid,"result":era_result(payload)})
-            except Exception as e:
+            except Exception as e:                       # dispatch-level only (shouldn't happen)
                 send({"jsonrpc":"2.0","id":rid,"error":{"code":-32603,"message":str(e)}})
         elif method.startswith("notifications/"): pass
         elif method == "ping":
