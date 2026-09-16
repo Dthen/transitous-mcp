@@ -499,14 +499,19 @@ def send(resp):
     sys.stdout.write(json.dumps(resp) + "\n")
     sys.stdout.flush()
 
+if hasattr(sys.stdin, "reconfigure"):
+    sys.stdin.reconfigure(errors="replace")
+
 def main():
     for line in sys.stdin:
         line = line.strip()
         if not line: continue
         try: req = json.loads(line)
-        except: continue
+        except Exception: continue
+        if not isinstance(req, dict): continue
         rid = req.get("id")
-        method = req.get("method","")
+        method = req.get("method")
+        if not isinstance(method, str): method = ""
         if method == "server/discover":
             send({"jsonrpc":"2.0","id":rid,"result":era_result({
                 "supportedVersions":[ERA_VERSION],
@@ -532,6 +537,7 @@ def main():
         elif method == "ping":
             send({"jsonrpc":"2.0","id":rid,"result":{}})
         else:
+            if rid is None and "id" not in req: continue   # §3/§1: no-id ⇒ never respond
             send({"jsonrpc":"2.0","id":rid,"error":{"code":-32601,"message":f"Method not found: {method}"}})
 
 if __name__ == "__main__":
