@@ -135,3 +135,49 @@ def test_tools_call_non_string_name_is_32602():
                     "params":{"name": 42}})
         assert r["error"]["code"] == -32602
     finally: p.kill(); p.wait()
+
+# ── Card T06: ping, notifications, catch-all, §1 loop-killer regressions ──
+
+def test_ping_answered_with_empty_result_and_loop_survives():
+    p = start()
+    try:
+        r = rpc(p, {"jsonrpc":"2.0","id":9,"method":"ping"})
+        assert r["id"] == 9 and r["result"] == {}             # §6: copy the {} form
+        assert p.poll() is None
+    finally: p.kill(); p.wait()      # GREEN today (ping branch exists — VERIFIED server.py:512): anti-regression pin
+
+def test_notifications_swallowed_without_phantom_response():
+    p = start()
+    try:
+        for m in ("notifications/initialized","notifications/cancelled"):
+            p.stdin.write(json.dumps({"jsonrpc":"2.0","method":m})+"\n")
+        p.stdin.flush()
+        r = rpc(p, {"jsonrpc":"2.0","id":11,"method":"tools/list"})
+        assert r["id"] == 11          # correlation: any phantom id-less reply breaks this
+        assert p.poll() is None
+    finally: p.kill(); p.wait()       # GREEN today (notifications/ branch pass-through, VERIFIED :511)
+
+def test_era_absent_method_gets_32601():
+    p = start()
+    try:
+        r = rpc(p, {"jsonrpc":"2.0","id":12,"method":"resources/list"})
+        assert r["error"]["code"] == -32601                   # §6 bullet 3: no such capability
+    finally: p.kill(); p.wait()       # GREEN today via legacy catch-all; pin guards T09–T10 rewrites
+
+def test_non_dict_json_line_is_skipped_not_fatal():
+    p = start()                       # legacy: req.get on int/None/list → AttributeError → dies
+    try:
+        for junk in ('5', 'null', '"str"', '[1,2]'):
+            p.stdin.write(junk + "\n")
+        p.stdin.flush()
+        r = rpc(p, {"jsonrpc":"2.0","id":13,"method":"tools/list"})
+        assert r["id"] == 13 and "result" in r
+    finally: p.kill(); p.wait()       # RED today (server-killer regression pin)
+
+def test_non_string_method_routes_as_unknown_not_crash():
+    p = start()                       # legacy: None.startswith → AttributeError
+    try:
+        r = rpc(p, {"jsonrpc":"2.0","id":14,"method":None})
+        assert r["error"]["code"] == -32601
+        assert p.poll() is None
+    finally: p.kill(); p.wait()       # RED today (server-killer regression pin)
