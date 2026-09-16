@@ -62,3 +62,36 @@ def test_initialize_returns_32601_and_never_hangs_or_closes():
         assert p.poll() is None                      # never exit on a rejected method
     finally:
         p.kill(); p.wait()
+
+def _tools_list(p, rid=3):
+    return rpc(p, {"jsonrpc":"2.0","id":rid,"method":"tools/list"})["result"]
+
+def test_tools_list_carries_the_triple():            # REFERENCE §4 triple + §1 pinned
+    p = start()
+    try:
+        res = _tools_list(p)
+        assert res["resultType"] == "complete" and res["ttlMs"] == 0 \
+               and res["cacheScope"] == "private"
+        assert "nextCursor" not in res               # unpaginated: omit
+    finally: p.kill(); p.wait()
+
+def test_tools_list_declares_no_outputSchema():      # §4 trap: a declared schema makes
+    p = start()                                      # validate_tool_result require
+    try:                                             # structuredContent on EVERY call
+        for t in _tools_list(p)["tools"]:
+            assert "outputSchema" not in t
+    finally: p.kill(); p.wait()
+
+def test_tools_list_byte_identical_to_golden():      # D4 freeze — UNCONDITIONAL load:
+    with open(os.path.join(ROOT, "golden", "transitous.tools.json")) as f:
+        golden = json.load(f)                        # no skipif/exists-guard: a missing
+    p = start()                                      # golden is a defect, not a skip
+    try:
+        tools = _tools_list(p)["tools"]
+        assert len(tools) == len(golden) == 13
+        for g, a in zip(golden, tools):
+            for key in ("name", "description", "inputSchema"):
+                assert json.dumps(g[key], sort_keys=True) == \
+                       json.dumps(a[key], sort_keys=True)
+            assert "outputSchema" not in a
+    finally: p.kill(); p.wait()
