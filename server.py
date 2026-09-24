@@ -509,6 +509,7 @@ def main():
         try: req = json.loads(line)
         except Exception: continue
         if not isinstance(req, dict): continue
+        if "id" not in req: continue
         rid = req.get("id")
         method = req.get("method")
         if not isinstance(method, str): method = ""

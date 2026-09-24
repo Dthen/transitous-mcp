@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stateless 2026-07-28 era conformance suite — card A.1 (11 era + 6 regression).
+"""Stateless 2026-07-28 era conformance suite — card A.1 (11 era + 7 regression).
 Subprocess-driven against ./server.py via /usr/bin/python3; network-free."""
 import json, os, select, subprocess, sys
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -156,6 +156,23 @@ def test_notifications_swallowed_without_phantom_response():
         assert r["id"] == 11          # correlation: any phantom id-less reply breaks this
         assert p.poll() is None
     finally: p.kill(); p.wait()       # GREEN today (notifications/ branch pass-through, VERIFIED :511)
+
+def test_known_method_notifications_are_silent_before_next_response():
+    p = start()
+    try:
+        requests = (
+            {"jsonrpc":"2.0","method":"server/discover"},
+            {"jsonrpc":"2.0","method":"tools/list"},
+            {"jsonrpc":"2.0","method":"tools/call","params":{"name":"no_such_tool_xyz","arguments":{}}},
+            {"jsonrpc":"2.0","method":"ping"},
+        )
+        for rid, notification in enumerate(requests, start=31):
+            p.stdin.write(json.dumps(notification)+"\n")
+            p.stdin.flush()
+            r = rpc(p, {"jsonrpc":"2.0","id":rid,"method":"tools/list"})
+            assert r["id"] == rid     # any synthetic id-null response would be read first
+            assert "result" in r
+    finally: p.kill(); p.wait()
 
 def test_era_absent_method_gets_32601():
     p = start()
