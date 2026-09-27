@@ -17,7 +17,8 @@ def era_result(payload):
     return out
 
 API_BASE = "https://api.transitous.org"
-UA = "HermesAgent/1.0 (transitous-mcp; kimbo@hermes)"
+# User-Agent contact is the PROJECT's public repo URL, never a personal address.
+UA = "HermesAgent/1.0 (transitous-mcp; +https://github.com/Dthen/transitous-mcp)"
 
 TRANSIT_MODES = [
     "TRANSIT", "BUS", "COACH", "TRAM", "SUBWAY", "SUBURBAN",
