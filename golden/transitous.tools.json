@@ -1,86 +1,248 @@
 [
   {
     "name": "transit_plan",
-    "description": "Plan a public transit route between two locations. Returns step-by-step itineraries with modes, times, and transfers.",
+    "description": "Plan a public transit journey between two endpoints. Each endpoint is either a stop id (from_stop_id / to_stop_id, sent to the planner verbatim) or a coordinate pair (from_lat+from_lon / to_lat+to_lon); the two endpoints may use different forms, but supplying both forms for one endpoint is invalid_input/mixed_endpoint_form. `time` may be an explicit offset-bearing instant (passed through unchanged, never re-read or shifted), a naive local clock, a date-only value (its local midnight), or omitted (now). A naive clock or date is read in the endpoint zone that owns the decision: the origin for a depart_after search, and the destination zone for an arrive_by search, so 'be there by 18:00' means the destination's 18:00. A deliberate `timezone` supplies that reading explicitly; origin_timezone / destination_timezone declare an endpoint's display zone, which the response echoes per endpoint. A naive clock skipped by a DST gap is rejected as invalid_input/nonexistent_local_time naming the gap, and a repeated clock as invalid_input/ambiguous_local_time with both candidate offsets and instants - never resolved silently; the remedy is an explicit offset instant or a zone. The result is one canonical envelope: time_frame, query (the effective query echo: control, requested and effective instant, search_window_seconds, minimum_requested, upstream_count, returned_count, max_results, truncated/truncation_reason/dropped_count, both page cursors, requested/applied modes, realtime_present), from/to place objects, itineraries in upstream order, direct street-only alternatives when include_direct is true, constraints_active, and warnings. Itineraries and legs carry one canonical timestamp object per instant, each rendered in its own endpoint's zone (zone is null with zone_source unavailable when the payload supplied none). This is a bounded search context, not a whole-day optimum: nothing is re-sorted, de-duplicated or selected as best, and max_results truncates after upstream ordering with truncated and truncation_reason reporting the cut. continuation holds previous and next, each a cursor frozen together with the complete effective query; replay by passing that object alone, and any contradicting argument is rejected as invalid_input/cursor_without_identical_query naming every differing field. An empty answer is outcome no_routes with no_routes_reason (street_only_alternatives_returned or not_determined) plus constraints_active; it never claims which supplied constraint caused it. Durations are integer seconds and an unknown value is null, never zero. RAIL is a parent mode covering high-speed, long-distance, night, regional, suburban and subway classes, so it is not 'mainline only'; REGIONAL_RAIL, LONG_DISTANCE, METRO and SUBWAY are the values that distinguish service classes. Street modes are rejected as street_mode_not_transit and unknown spellings as unknown_mode.",
     "inputSchema": {
       "type": "object",
       "properties": {
+        "from_stop_id": {
+          "type": "string",
+          "description": "Origin stop id, sent verbatim (exactly one form per endpoint)"
+        },
+        "to_stop_id": {
+          "type": "string",
+          "description": "Destination stop id, sent verbatim (exactly one form per endpoint)"
+        },
         "from_lat": {
-          "type": "number"
+          "type": "number",
+          "description": "Origin latitude, -90..90"
         },
         "from_lon": {
-          "type": "number"
+          "type": "number",
+          "description": "Origin longitude, -180..180"
         },
         "to_lat": {
-          "type": "number"
+          "type": "number",
+          "description": "Destination latitude, -90..90"
         },
         "to_lon": {
-          "type": "number"
+          "type": "number",
+          "description": "Destination longitude, -180..180"
         },
         "time": {
           "type": "string",
-          "description": "ISO datetime (default: now)"
+          "description": "Explicit offset instant (2026-10-27T09:00:00Z), naive local clock (2026-10-27T09:00) read at the rotated endpoint, or date (2026-10-27) for its local midnight; omitted means now. Never an offset-less value sent upstream."
         },
         "arrive_by": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "false = depart after `time` (origin local); true = arrive by it (destination local)",
+          "default": false
+        },
+        "timezone": {
+          "type": "string",
+          "description": "Caller IANA zone used to read a naive clock; a deliberate frame, never an endpoint claim"
+        },
+        "origin_timezone": {
+          "type": "string",
+          "description": "Declared origin display zone (IANA); outranks stop/discovery evidence"
+        },
+        "destination_timezone": {
+          "type": "string",
+          "description": "Declared destination display zone (IANA); outranks stop/discovery evidence"
         },
         "max_transfers": {
           "type": "integer",
-          "description": "default: 5"
+          "minimum": 0,
+          "maximum": 10,
+          "default": 5
         },
         "transit_modes": {
           "type": "array",
           "items": {
             "type": "string",
             "enum": [
-              "TRANSIT",
+              "AERIAL_LIFT",
+              "AIRPLANE",
+              "AREAL_LIFT",
               "BUS",
+              "CABLE_CAR",
               "COACH",
-              "TRAM",
-              "SUBWAY",
-              "SUBURBAN",
-              "REGIONAL_RAIL",
-              "RAIL",
+              "FERRY",
+              "FLEX",
+              "FUNICULAR",
               "HIGHSPEED_RAIL",
               "LONG_DISTANCE",
+              "METRO",
               "NIGHT_RAIL",
-              "FERRY",
-              "AIRPLANE",
-              "FUNICULAR",
-              "AERIAL_LIFT"
+              "ODM",
+              "OTHER",
+              "RAIL",
+              "REGIONAL_FAST_RAIL",
+              "REGIONAL_RAIL",
+              "RIDE_SHARING",
+              "SUBURBAN",
+              "SUBWAY",
+              "TRAM",
+              "TRANSIT"
             ]
-          }
+          },
+          "default": [
+            "TRANSIT"
+          ],
+          "description": "Accepted transit modes, sent in caller order as one comma-joined value. RAIL is a parent mode covering high-speed, long-distance, night, regional, suburban and subway classes, not mainline only."
         },
         "num_itineraries": {
           "type": "integer",
-          "description": "default: 3"
+          "minimum": 1,
+          "maximum": 20,
+          "default": 5,
+          "description": "Minimum itineraries requested; echoed as query.minimum_requested"
         },
-        "max_walking_minutes": {
+        "max_itineraries": {
           "type": "integer",
-          "description": "Max walk per leg in minutes",
-          "default": 30
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Upstream computation cap; approximate, never a returned-result limit"
+        },
+        "max_results": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Strict wrapper cap applied after upstream ordering; the only thing that makes truncated meaningful. Omit to return every supplied itinerary."
+        },
+        "search_window_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400,
+          "default": 900,
+          "description": "Upstream searchWindow, in seconds"
+        },
+        "continuation": {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "type": "string",
+              "description": "A previous/next cursor, verbatim"
+            },
+            "query": {
+              "type": "object",
+              "description": "The frozen effective query returned beside that cursor; it is the authority and is validated with the same rules as a first call"
+            }
+          },
+          "required": [
+            "cursor",
+            "query"
+          ],
+          "additionalProperties": false,
+          "description": "Pass continuation.previous or continuation.next from a previous result, alone. A separately supplied argument that contradicts the frozen query is rejected as cursor_without_identical_query naming the fields."
+        },
+        "include_direct": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include the upstream's street-only direct alternatives when non-empty"
+        },
+        "max_access_walk_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 120,
+          "default": 15,
+          "description": "Access walk cap per endpoint, in minutes (sent as maxPreTransitTime)"
+        },
+        "max_egress_walk_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 120,
+          "default": 15,
+          "description": "Egress walk cap per endpoint, in minutes (sent as maxPostTransitTime)"
+        },
+        "min_transfer_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 120,
+          "default": 0,
+          "description": "Minimum transfer time, in minutes (sent as minTransferTime)"
         }
       },
-      "required": [
-        "from_lat",
-        "from_lon",
-        "to_lat",
-        "to_lon"
-      ]
+      "required": []
     }
   },
   {
     "name": "transit_geocode",
-    "description": "Geocode a place name/address/stop to coordinates.",
+    "description": "Resolve a place name, address or stop to canonical matches. `types` restricts the match kinds (ADDRESS, PLACE, STOP) and `modes` filters stops by available transport modes; both are sent upstream as one comma-joined value in the caller's order rather than enforced client-side. RAIL in `modes` does not separate mainline from Metro: it expands to the rail-ish classes including subway. `near` (a lat/lon pair) biases the ranking toward that coordinate and filters nothing; `near_bias` (0..1) sets how strongly. A single-result request is not a disambiguation strategy, and dataset names differ from colloquial names, so refine the query text instead of assuming the first hit is meant. Every match reports name, match_type, match_id, stop_id, lat, lon, modes, importance, country, timezone, score, category, street, house_number, zip, level and areas. stop_id is populated only when match_type is STOP, and is then the same value as match_id because that identifier is accepted by the planner; for ADDRESS and PLACE matches stop_id is null and match_id is the only identifier. The geocode Match schema carries no parent grouping, so no parent_id is returned and no enrichment request is made; use transit_nearby_stops for parent grouping. num_results defaults to 10 and is bounded 1..40 and is a request parameter, not a client-side slice; count is the number of matches the upstream returned.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "query": {
-          "type": "string"
+          "type": "string",
+          "description": "Place name, address or stop name"
         },
-        "limit": {
+        "types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "ADDRESS",
+              "PLACE",
+              "STOP"
+            ]
+          },
+          "description": "Restrict match kinds; sent as one comma-joined `type` value"
+        },
+        "modes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "TRANSIT",
+              "TRAM",
+              "SUBWAY",
+              "METRO",
+              "BUS",
+              "COACH",
+              "RAIL",
+              "HIGHSPEED_RAIL",
+              "LONG_DISTANCE",
+              "NIGHT_RAIL",
+              "REGIONAL_FAST_RAIL",
+              "REGIONAL_RAIL",
+              "SUBURBAN",
+              "FUNICULAR",
+              "AERIAL_LIFT",
+              "AREAL_LIFT",
+              "CABLE_CAR",
+              "FERRY",
+              "AIRPLANE",
+              "OTHER",
+              "ODM",
+              "RIDE_SHARING",
+              "FLEX"
+            ]
+          },
+          "description": "Filter stops by available transport modes; sent as one `mode` value"
+        },
+        "near": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "[lat, lon] ranking bias; filters nothing"
+        },
+        "near_bias": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "num_results": {
           "type": "integer",
-          "description": "Max results (default: 5)"
+          "minimum": 1,
+          "maximum": 40,
+          "default": 10
+        },
+        "language": {
+          "type": "string",
+          "description": "Preferred result language"
         }
       },
       "required": [
@@ -90,47 +252,63 @@
   },
   {
     "name": "transit_departures",
-    "description": "Live departure board for a stop. Use stop IDs from geocode or nearby_stops.",
+    "description": "Live departure board for one stop id (from transit_geocode or transit_nearby_stops). `time` follows the transit_plan forms: an explicit offset-bearing instant is sent unchanged, while a naive clock or date-only value is read in the stop's own zone, resolved from stop metadata with at most one lookup and overridable by `timezone` or the deliberate `endpoint_timezone`; a skipped or repeated local clock is rejected rather than guessed. count defaults to 10 (1..50) and `window` is an optional 1..86400 second span. Each departure keeps scheduled and realtime apart: scheduled_departure is the timetable time, expected_departure is populated only when the payload carries realtime and a departure value, realtime comes from the required StopTime.realTime flag (a body omitting it is malformed_upstream), and `scheduled` is always null because the pinned StopTime has no such property - realtime availability says nothing about whether the service was originally scheduled and is never its negation. delay_seconds is expected minus scheduled in integer seconds, or null when either is absent. trip_cancelled and stop_cancelled are tri-state: true, false, or null when the payload is silent.",
     "inputSchema": {
       "type": "object",
       "properties": {
-        "stop": {
+        "stop_id": {
           "type": "string",
-          "description": "Stop ID"
+          "description": "Stop id, verbatim"
         },
         "count": {
           "type": "integer",
-          "description": "default: 10"
+          "minimum": 1,
+          "maximum": 50,
+          "default": 10
         },
         "time": {
           "type": "string",
-          "description": "ISO datetime (default: now)"
+          "description": "Explicit offset instant, naive clock or date; omitted means now"
         },
         "window": {
           "type": "integer",
-          "description": "Time window in seconds"
+          "minimum": 1,
+          "maximum": 86400,
+          "description": "Departure window in seconds"
+        },
+        "timezone": {
+          "type": "string",
+          "description": "Caller IANA zone for a naive clock"
+        },
+        "endpoint_timezone": {
+          "type": "string",
+          "description": "Declared stop display zone (IANA)"
         }
       },
       "required": [
-        "stop"
+        "stop_id"
       ]
     }
   },
   {
     "name": "transit_nearby_stops",
-    "description": "Find transit stops near a location.",
+    "description": "Find the nearest transit stops around a coordinate. radius is in metres, 1..5000, default 1000, and becomes the request's bounding box. Results are the nearest 20 stops inside that radius, nearest first, each with stop_id, name, lat, lon, distance_m and the stop metadata the map payload supplies (modes, timezone, parent_id, vertex_type); an absent member is null and never fabricated, and no enrichment request is made. Coverage is the requested window's results, not a guaranteed global nearest set: near a pole, or at a clamped antimeridian edge, a stop inside the radius can fall outside the box the upstream was asked for, and a stop the upstream never returns cannot be reported. count is the post-truncation length and truncated is the cut signal.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "lat": {
-          "type": "number"
+          "type": "number",
+          "description": "Latitude, -90..90"
         },
         "lon": {
-          "type": "number"
+          "type": "number",
+          "description": "Longitude, -180..180"
         },
         "radius": {
           "type": "integer",
-          "description": "Meters (default: 1000, max: 5000)"
+          "minimum": 1,
+          "maximum": 5000,
+          "default": 1000
         }
       },
       "required": [
@@ -141,15 +319,34 @@
   },
   {
     "name": "transit_reverse_geocode",
-    "description": "Convert coordinates to the nearest transit stop or address.",
+    "description": "Convert coordinates to the closest places, stops or addresses. `types` restricts the match kinds (ADDRESS, PLACE, STOP) and `num_results` (1..40) bounds how many are requested; both are omitted from the request unless supplied, leaving the upstream's own defaults in force. Each match reports name, match_type, match_id, stop_id, lat, lon and the metadata the payload supplies. stop_id is populated only for a STOP match and then equals match_id; ADDRESS and PLACE matches carry stop_id null. The Match schema carries no parent grouping, so no parent_id is returned and no enrichment request is made.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "lat": {
-          "type": "number"
+          "type": "number",
+          "description": "Latitude, -90..90"
         },
         "lon": {
-          "type": "number"
+          "type": "number",
+          "description": "Longitude, -180..180"
+        },
+        "types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "ADDRESS",
+              "PLACE",
+              "STOP"
+            ]
+          },
+          "description": "Restrict match kinds"
+        },
+        "num_results": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 40
         }
       },
       "required": [
@@ -160,13 +357,13 @@
   },
   {
     "name": "transit_trip",
-    "description": "Get full trip details including stop sequence. Use tripId from plan or departures results.",
+    "description": "Full stop sequence for one trip id from transit_plan or transit_departures. The tool takes no time input, so every time is rendered from the payload's own endpoint zones rather than re-read in a caller frame. Each leg reports index, mode, from/to places, departure/arrival, the scheduled pair when supplied, realtime and scheduled tri-states, the cancellation split (a failed street leg reports walking_route_unavailable and duration_is_estimate with cancelled null, while a transit leg reports its own cancelled), route, headsign, agency_name, intermediate_stop_count and intermediate_stops. Each intermediate stop reports stop_id, name, arrival, departure, the scheduled pair, track, cancelled and stop_cancelled; a place that is an endpoint of a failed street path is never reported as a cancelled stop.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "trip_id": {
           "type": "string",
-          "description": "Trip ID from plan/departures"
+          "description": "Trip id from transit_plan or transit_departures"
         }
       },
       "required": [
@@ -176,7 +373,7 @@
   },
   {
     "name": "transit_health",
-    "description": "Check if the Transitous API server is healthy.",
+    "description": "Check whether the Transitous API server is healthy. Returns a raw provider payload: the upstream response unchanged, not the canonical envelope, so its shape is the upstream's.",
     "inputSchema": {
       "type": "object",
       "properties": {}
@@ -184,44 +381,57 @@
   },
   {
     "name": "transit_reachable",
-    "description": "Find destinations reachable within a time budget (isochrones).",
+    "description": "Find places reachable from one coordinate within a travel-time budget. max_time_min is 1..1440 (default 60). The single `one` endpoint is the origin when arrive_by is false and the destination when arrive_by is true; query.one_role names which, and a naive clock is read in that endpoint's zone (overridable by `timezone` or `endpoint_timezone`) rather than in either of the places that merely happen to be reachable. Each entry reports name, lat, lon, travel_time_seconds (integer seconds from the payload's duration) and transfers_k verbatim (k=1 direct, k=2 one transfer): one seconds field, one name, no minute alias and no second change-counting definition. Both members are optional upstream, so an absent one is null, never zero. The result is the upstream's bounded reachable set, not a complete reachable area and not a time-band guarantee.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "lat": {
-          "type": "number"
+          "type": "number",
+          "description": "Latitude of the `one` endpoint, -90..90"
         },
         "lon": {
-          "type": "number"
+          "type": "number",
+          "description": "Longitude of the `one` endpoint, -180..180"
         },
         "max_time_min": {
           "type": "integer",
-          "description": "Maximum travel time in minutes"
+          "minimum": 1,
+          "maximum": 1440,
+          "default": 60
         },
         "time": {
           "type": "string",
-          "description": "ISO datetime (default: now)"
+          "description": "Explicit offset instant, naive clock or date; omitted means now"
         },
         "arrive_by": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": false,
+          "description": "false = `one` is the origin; true = `one` is the destination"
+        },
+        "timezone": {
+          "type": "string",
+          "description": "Caller IANA zone for a naive clock"
+        },
+        "endpoint_timezone": {
+          "type": "string",
+          "description": "Declared `one` endpoint zone (IANA)"
         }
       },
       "required": [
         "lat",
-        "lon",
-        "max_time_min"
+        "lon"
       ]
     }
   },
   {
     "name": "transit_refresh",
-    "description": "Refresh an itinerary with real-time updates. Use itinerary ID from plan results.",
+    "description": "Re-fetch one itinerary with real-time updates, using itinerary_id from transit_plan. Returns a raw provider payload: the upstream response unchanged, not the canonical envelope. Failures still use the canonical error result.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "itinerary_id": {
           "type": "string",
-          "description": "Itinerary ID from transit_plan"
+          "description": "Itinerary id from transit_plan"
         }
       },
       "required": [
@@ -231,15 +441,17 @@
   },
   {
     "name": "transit_rentals",
-    "description": "Find nearby rental bikes, scooters, and cars (GBFS sharing systems).",
+    "description": "Find nearby shared bikes, scooters and cars (GBFS sharing systems). Returns a raw provider payload: the upstream response unchanged, not the canonical envelope. Failures still use the canonical error result.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "lat": {
-          "type": "number"
+          "type": "number",
+          "description": "Latitude, -90..90"
         },
         "lon": {
-          "type": "number"
+          "type": "number",
+          "description": "Longitude, -180..180"
         },
         "radius": {
           "type": "integer",
@@ -254,15 +466,17 @@
   },
   {
     "name": "transit_one_to_many",
-    "description": "Street routing from one origin to multiple destinations.",
+    "description": "Street durations from one coordinate to 1..50 destinations. No clock is involved, so no time is accepted or reported. `one` (from_lat/from_lon) is the origin, or the destination when arrive_by is true; query.one_role states which and the destination array supplies the other side. The server may impose its own maximum street duration; no wrapper guarantee overrides that limit. Results are indexed to the requested destination order and carry the requested lat/lon plus duration_seconds and distance_meters from that index's Duration, preserving finite fractional values without rounding. An empty Duration is null/null, never zero. A missing or extra entry is malformed_upstream/unexpected_shape, and the result is no_routes only when every destination lacks a duration.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "from_lat": {
-          "type": "number"
+          "type": "number",
+          "description": "Latitude of the `one` endpoint, -90..90"
         },
         "from_lon": {
-          "type": "number"
+          "type": "number",
+          "description": "Longitude of the `one` endpoint, -180..180"
         },
         "destinations": {
           "type": "array",
@@ -273,19 +487,30 @@
             },
             "minItems": 2,
             "maxItems": 2
-          }
+          },
+          "minItems": 1,
+          "maxItems": 50,
+          "description": "Destination [lat, lon] pairs, in result order"
         },
         "mode": {
           "type": "string",
-          "description": "WALK, BIKE, or CAR (default: WALK)"
+          "enum": [
+            "WALK",
+            "BIKE",
+            "CAR"
+          ],
+          "default": "WALK",
+          "description": "Street profile; exactly WALK, BIKE or CAR"
         },
         "max_sec": {
-          "type": "integer",
-          "description": "Max travel time in seconds (default: 3600)"
+          "type": "number",
+          "default": 3600,
+          "description": "Maximum street duration in seconds; finite and non-negative"
         },
         "arrive_by": {
           "type": "boolean",
-          "description": "If true, many-to-one routing"
+          "default": false,
+          "description": "false = many-to-one is off (`one` is origin); true = `one` is the destination"
         }
       },
       "required": [
@@ -297,15 +522,17 @@
   },
   {
     "name": "transit_one_to_many_transit",
-    "description": "Transit routing from one origin to multiple destinations. Like transit_plan but for N destinations in one call.",
+    "description": "Street duration plus the transit Pareto set for every destination (1..50). `time` follows the transit_plan forms and a naive clock is read at the `one` endpoint's zone (overridable by `timezone` or `endpoint_timezone`); `one` is the origin for arrive_by false and the destination for arrive_by true, which query.one_role reports. Walking-minute names align with transit_plan; transit_modes defaults to [\"TRANSIT\"] and RAIL is a parent mode. query.applied_modes lists the modes actually applied in caller order, and those same values are sent upstream as one comma-joined transitModes value. Results are indexed to the requested destination order: street_duration_seconds, street_distance_meters and `transit`, an array of {duration_seconds, transfers} in supplied Pareto order. Pareto durations are the seconds as returned, and the upstream currently reports them at whole minutes' resolution, so they are not second-accurate. An empty Pareto set means no transit connection for that destination: it is an empty `transit` array with the street fields still populated, never a zero duration. Missing required Pareto members are malformed, not defaults, and transfers keeps the schema's own name.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "from_lat": {
-          "type": "number"
+          "type": "number",
+          "description": "Latitude of the `one` endpoint, -90..90"
         },
         "from_lon": {
-          "type": "number"
+          "type": "number",
+          "description": "Longitude of the `one` endpoint, -180..180"
         },
         "destinations": {
           "type": "array",
@@ -316,52 +543,85 @@
             },
             "minItems": 2,
             "maxItems": 2
-          }
+          },
+          "minItems": 1,
+          "maxItems": 50,
+          "description": "Destination [lat, lon] pairs, in result order"
         },
         "time": {
           "type": "string",
-          "description": "ISO datetime (default: now)"
+          "description": "Explicit offset instant, naive clock or date; omitted means now"
         },
         "arrive_by": {
           "type": "boolean",
-          "description": "If true, many-to-one routing"
+          "default": false,
+          "description": "false = one-to-many (`one` is origin); true = many-to-one (`one` is destination)"
         },
         "max_transfers": {
           "type": "integer",
-          "description": "Max transfers (default: 5)"
+          "minimum": 0,
+          "maximum": 10,
+          "default": 5
         },
         "transit_modes": {
           "type": "array",
           "items": {
             "type": "string",
             "enum": [
-              "TRANSIT",
+              "AERIAL_LIFT",
+              "AIRPLANE",
+              "AREAL_LIFT",
               "BUS",
+              "CABLE_CAR",
               "COACH",
-              "TRAM",
-              "SUBWAY",
-              "SUBURBAN",
-              "REGIONAL_RAIL",
-              "RAIL",
+              "FERRY",
+              "FLEX",
+              "FUNICULAR",
               "HIGHSPEED_RAIL",
               "LONG_DISTANCE",
+              "METRO",
               "NIGHT_RAIL",
-              "FERRY",
-              "AIRPLANE",
-              "FUNICULAR",
-              "AERIAL_LIFT"
+              "ODM",
+              "OTHER",
+              "RAIL",
+              "REGIONAL_FAST_RAIL",
+              "REGIONAL_RAIL",
+              "RIDE_SHARING",
+              "SUBURBAN",
+              "SUBWAY",
+              "TRAM",
+              "TRANSIT"
             ]
-          }
+          },
+          "default": [
+            "TRANSIT"
+          ]
         },
-        "max_walking_minutes": {
+        "max_access_walk_minutes": {
           "type": "integer",
-          "description": "Max walk per leg in minutes",
+          "minimum": 0,
+          "maximum": 120,
+          "default": 15
+        },
+        "max_egress_walk_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 120,
           "default": 15
         },
         "max_travel_minutes": {
           "type": "integer",
-          "description": "Max total travel time in minutes",
+          "minimum": 1,
+          "maximum": 1440,
           "default": 60
+        },
+        "timezone": {
+          "type": "string",
+          "description": "Caller IANA zone for a naive clock"
+        },
+        "endpoint_timezone": {
+          "type": "string",
+          "description": "Declared `one` endpoint zone (IANA)"
         }
       },
       "required": [
@@ -373,33 +633,43 @@
   },
   {
     "name": "transit_map_trips",
-    "description": "Active transit trips in a bounding box. Like a live transit map \u2014 see what buses/trains are near a location right now.",
+    "description": "Active trips inside a bounding box and time window. min_lat/min_lon/max_lat/max_lon are required, with corners in range and min strictly less than max on both axes; start_time is strictly before end_time; zoom is 1..19 (default 12), high zoom meaning local and low meaning long-distance. A bounding box has no single endpoint zone, so a naive (offset-less) start_time or end_time is invalid_input/bbox_window_requires_explicit_zone unless a caller `timezone` is supplied; explicit offset instants need no zone. Each trip segment reports trip_id, route, mode, from/to places, departure/arrival, the scheduled pair, from_lat/from_lon/to_lat/to_lon, distance_meters, polyline_present and realtime from the required TripSegment.realTime (a body omitting it is malformed_upstream). There is no vehicle_position field: the pinned schema has no position slot and no supported source provides one. At most 50 segments are returned; upstream_count, returned_count and truncated report the cut.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "min_lat": {
-          "type": "number"
+          "type": "number",
+          "description": "Latitude of the south-west corner, -90..90"
         },
         "min_lon": {
-          "type": "number"
+          "type": "number",
+          "description": "Longitude of the south-west corner, -180..180"
         },
         "max_lat": {
-          "type": "number"
+          "type": "number",
+          "description": "Latitude of the north-east corner, -90..90"
         },
         "max_lon": {
-          "type": "number"
-        },
-        "zoom": {
-          "type": "integer",
-          "description": "Zoom level 1-19 (default: 12). High zoom=local, low=long-distance"
+          "type": "number",
+          "description": "Longitude of the north-east corner, -180..180"
         },
         "start_time": {
           "type": "string",
-          "description": "ISO datetime (default: now)"
+          "description": "Explicit offset instant, or a naive clock with a caller timezone"
         },
         "end_time": {
           "type": "string",
-          "description": "ISO datetime (default: start + 30 min)"
+          "description": "Explicit offset instant, or a naive clock with a caller timezone"
+        },
+        "zoom": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 19,
+          "default": 12
+        },
+        "timezone": {
+          "type": "string",
+          "description": "Caller IANA zone; the only way to read a naive window, because a bounding box has no endpoint zone"
         }
       },
       "required": [

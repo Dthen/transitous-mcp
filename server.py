@@ -1,13 +1,27 @@
 #!/usr/bin/env python3
-"""Transitous MCP Server — free public transit routing via MOTIS API."""
+"""Transitous MCP server — free public transit routing via the Transitous (MOTIS) API.
 
-import json, sys, math, urllib.request, urllib.parse, urllib.error
-from datetime import datetime, timezone
+This file is a thin adapter: the stateless JSON-RPC loop, the era envelope and the
+tool registry live here, and every journey rule lives in :mod:`transit_core`
+(request assembly, time and zone authority, error taxonomy, HTTP boundary,
+itinerary/board/one-to-many mapping). Standard library only; no MCP framework, no
+runtime dependency and no test-only branch.
+
+``transit_refresh``, ``transit_rentals`` and ``transit_health`` are the only tools
+that keep returning raw provider payloads. Every other tool returns the canonical
+envelope of ``transit_core.errors``.
+"""
+
+import json
+import sys
+
+from transit_core import boards, errors, geocode, http, onetomany, plan
 
 ERA_VERSION = "2026-07-28"
-SERVER_INFO = {"name": "transitous-mcp", "version": "2.1.0"}   # D7 minor bump
+SERVER_INFO = {"name": "transitous-mcp", "version": "3.0.0"}   # breaking application contract
 ERA_RESULT_FIELDS = {"resultType": "complete", "ttlMs": 0, "cacheScope": "private"}
 RESULT_META = {"io.modelcontextprotocol/serverInfo": SERVER_INFO}
+
 
 def era_result(payload):
     """A result carrying the era-strict fields D3 mandates on every response."""
@@ -16,483 +30,749 @@ def era_result(payload):
     out["_meta"] = RESULT_META
     return out
 
-API_BASE = "https://api.transitous.org"
-# User-Agent contact is the PROJECT's public repo URL, never a personal address.
-UA = "HermesAgent/1.0 (transitous-mcp; +https://github.com/Dthen/transitous-mcp)"
 
-TRANSIT_MODES = [
-    "TRANSIT", "BUS", "COACH", "TRAM", "SUBWAY", "SUBURBAN",
-    "REGIONAL_RAIL", "RAIL", "HIGHSPEED_RAIL", "LONG_DISTANCE",
-    "NIGHT_RAIL", "FERRY", "AIRPLANE", "FUNICULAR", "AERIAL_LIFT",
-]
-
-def api_get(path, params=None):
-    url = f"{API_BASE}{path}"
-    if params:
-        clean = {k: v for k, v in params.items() if v is not None}
-        url += "?" + urllib.parse.urlencode(clean, doseq=True)
-    req = urllib.request.Request(url, headers={"User-Agent": UA})
-    try:
-        with urllib.request.urlopen(req, timeout=25) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        body = e.read().decode(errors="replace")[:500]
-        return {"error": f"HTTP {e.code}: {body}"}
-    except (urllib.error.URLError, OSError, TimeoutError) as e:
-        return {"transport_error": str(e)}
-    except Exception as e:
-        return {"error": str(e)}
-
-def fmt_dur(s):
-    if s is None or s < 0: return "?"
-    s = int(round(s))
-    if s < 60: return f"{s}s"
-    h, m = divmod(s, 3600); m //= 60
-    return f"{h}h{m:02d}m" if h else f"{m}min" if m == 1 else f"{m}mins"
-
-def normalize_time(iso):
-    """Ensure ISO timestamp has explicit timezone (appends Z if missing)."""
-    if not iso: return iso
-    iso = iso.strip()
-    # Date-only strings like "2024-01-01" have no time separator
-    if "T" not in iso and "t" not in iso and " " not in iso:
-        return iso + "T00:00:00Z"
-    iso = iso.replace(" ", "T")
-    if not (iso.endswith("Z") or "+" in iso[-6:] or "-" in iso[-6:]):
-        return iso + "Z"
-    return iso
-
-def fmt_time(iso):
-    """Format an ISO timestamp to HH:MM (UTC)."""
-    if not iso: return "?"
-    try:
-        dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
-        return dt.astimezone(timezone.utc).strftime("%H:%M")
-    except Exception: return iso
-
-def _check_coords(lat, lon):
-    """Return error dict if coordinates are out of range."""
-    if not (-90 <= lat <= 90): return {"error": f"Latitude {lat} out of range (-90 to 90)"}
-    if not (-180 <= lon <= 180): return {"error": f"Longitude {lon} out of range (-180 to 180)"}
-    return None
-
-# ── Core endpoints ──────────────────────────────────────────────────
-
-def plan_route(from_lat, from_lon, to_lat, to_lon,
-               time=None, arrive_by=False, max_transfers=5,
-               transit_modes=None, num_itineraries=3, max_walk_sec=1800):
-    err = _check_coords(from_lat, from_lon) or _check_coords(to_lat, to_lon)
-    if err: return err
-    if not transit_modes: transit_modes = ["TRANSIT"]
-    for m in transit_modes:
-        if m not in TRANSIT_MODES:
-            return {"error": f"Unknown mode: {m}"}
-    params = {
-        "fromPlace": f"{from_lat},{from_lon}",
-        "toPlace": f"{to_lat},{to_lon}",
-        "maxTransfers": max_transfers,
-        "numItineraries": num_itineraries,
-        "maxPreTransitTime": max_walk_sec,
-        "maxPostTransitTime": max_walk_sec,
-        "transitModes": transit_modes,
-        "arriveBy": str(arrive_by).lower(),
-    }
-    if time: params["time"] = normalize_time(time)
-    data = api_get("/api/v6/plan", params)
-    if "error" in data: return data
-    if "transport_error" in data: return data
-    itins = data.get("itineraries", [])
-    if not itins:
-        from_name = data.get("from",{}).get("name","?")
-        to_name = data.get("to",{}).get("name","?")
-        if from_name == "START": from_name = f"{from_lat},{from_lon}"
-        if to_name == "END": to_name = f"{to_lat},{to_lon}"
-        return {"result": "No routes found.", "itineraries": [],
-                "from": from_name, "to": to_name}
-    results = []
-    for itin in itins[:num_itineraries]:
-        legs = []
-        for leg in itin.get("legs", []):
-            if not isinstance(leg, dict): continue
-            leg_from = leg.get("from",{}).get("name","?")
-            leg_to = leg.get("to",{}).get("name","?")
-            if leg_from == "START": leg_from = f"{from_lat},{from_lon}"
-            if leg_to == "END": leg_to = f"{to_lat},{to_lon}"
-            l = {"mode": leg.get("mode","?"),
-                 "from": leg_from,
-                 "to": leg_to,
-                 "duration": fmt_dur(leg.get("duration",0)),
-                 "departure": fmt_time(leg.get("from",{}).get("departure","")),
-                 "arrival": fmt_time(leg.get("to",{}).get("arrival",""))}
-            if leg.get("routeShortName"): l["route"] = leg["routeShortName"]
-            elif leg.get("routeLongName"): l["route"] = leg["routeLongName"]
-            if leg.get("headsign"): l["headsign"] = leg["headsign"]
-            if leg.get("tripId"): l["tripId"] = leg["tripId"]
-            if leg.get("cancelled"): l["cancelled"] = True
-            legs.append(l)
-        results.append({"option": len(results)+1,
-                        "itin_id": itin.get("id", ""),
-                        "duration": fmt_dur(itin.get("duration",0)),
-                        "transfers": itin.get("transfers",0),
-                        "departure": fmt_time(itin.get("startTime","")),
-                        "arrival": fmt_time(itin.get("endTime","")),
-                        "legs": legs})
-    from_name = data.get("from",{}).get("name","?")
-    to_name = data.get("to",{}).get("name","?")
-    if from_name == "START": from_name = f"{from_lat},{from_lon}"
-    if to_name == "END": to_name = f"{to_lat},{to_lon}"
-    return {"result": "ok", "from": from_name, "to": to_name, "itineraries": results}
-
-def geocode_stop(query, limit=5):
-    data = api_get("/api/v1/geocode", {"text": query})
-    if "error" in data: return data
-    if "transport_error" in data: return data
-    return {"query": query, "results": [
-        {"name": i.get("name","?"), "lat": i.get("lat"), "lon": i.get("lon"),
-         "type": i.get("type","?"), "id": i.get("id","?")}
-        for i in data[:int(limit)] if isinstance(i, dict)]}
-
-# ── New endpoints (using verified API parameters) ───────────────────
-
-def departures(stop_id, count=10, time=None, window=None):
-    """Live departure board. stopId from geocode/nearby_stops."""
-    params = {"stopId": stop_id, "n": count}
-    if time: params["time"] = normalize_time(time)
-    if window: params["window"] = window
-    data = api_get("/api/v6/stoptimes", params)
-    if "error" in data: return data
-    if "transport_error" in data: return data
-    if "stopTimes" not in data:
-        return {"error": "Missing stopTimes in response"}
-    place_name = data.get("place", {}).get("name", "")
-    times = data["stopTimes"]
-    if not isinstance(times, list): return {"error": "Unexpected response"}
-    results = []
-    for st in times[:count]:
-        p = st.get("place", {})
-        r = {"route": st.get("routeShortName", "?"),
-             "headsign": st.get("headsign", "?"),
-             "scheduled": fmt_time(p.get("scheduledDeparture", p.get("scheduledArrival", "")))}
-        if p.get("departure"): r["actual"] = fmt_time(p["departure"])
-        if st.get("cancelled"): r["cancelled"] = True
-        results.append(r)
-    return {"stopId": stop_id, "stopName": place_name, "departures": results}
-
-def nearby_stops(lat, lon, radius=1000):
-    """Find stops within radius (meters, max 5000)."""
-    err = _check_coords(lat, lon)
-    if err: return err
-    dlat = radius / 111000.0
-    dlon = radius / (111000.0 * math.cos(math.radians(lat)))
-    params = {
-        "min": f"{lat-dlat},{lon-dlon}",
-        "max": f"{lat+dlat},{lon+dlon}",
-    }
-    data = api_get("/api/v6/map/stops", params)
-    if "error" in data: return data
-    if "transport_error" in data: return data
-    stops = data if isinstance(data, list) else []
-    def dist(s):
-        slat, slon = s.get("lat", lat), s.get("lon", lon)
-        return math.hypot((slat-lat)*111000, (slon-lon)*111000*math.cos(math.radians(lat)))
-    results = []
-    for s in [s for s in sorted(stops, key=dist) if dist(s) <= radius][:20]:
-        results.append({"id": s.get("stopId","?"), "name": s.get("name","?"),
-                        "lat": s.get("lat"), "lon": s.get("lon"),
-                        "distance_m": round(dist(s))})
-    return {"center": [lat, lon], "radius_m": radius, "stops": results}
-
-def reverse_geocode(lat, lon):
-    """Coordinates → nearest stop/address."""
-    err = _check_coords(lat, lon)
-    if err: return err
-    data = api_get("/api/v1/reverse-geocode", {"place": f"{lat},{lon}"})
-    if "error" in data: return data
-    if "transport_error" in data: return data
-    return {"lat": lat, "lon": lon, "stops": data[:5] if isinstance(data, list) else [data]}
-
-def trip_details(trip_id):
-    """Full trip stop sequence. tripId from plan/departures results."""
-    data = api_get("/api/v6/trip", {"tripId": trip_id})
-    if "error" in data: return data
-    if "transport_error" in data: return data
-    if not isinstance(data, dict): return {"error": "Unexpected response"}
-    legs = []
-    for leg in data.get("legs", []):
-        if not isinstance(leg, dict): continue
-        stops = []
-        for stop in leg.get("intermediateStops", []):
-            if isinstance(stop, dict):
-                s = {"name": stop.get("name","?")}
-                if stop.get("arrival"): s["arrival"] = fmt_time(stop["arrival"])
-                if stop.get("departure"): s["departure"] = fmt_time(stop["departure"])
-                if stop.get("stopId"): s["stopId"] = stop["stopId"]
-                stops.append(s)
-        l = {"mode": leg.get("mode","?"),
-             "from": leg.get("from",{}).get("name","?"),
-             "to": leg.get("to",{}).get("name","?"),
-             "departure": fmt_time(leg.get("from",{}).get("departure","")),
-             "arrival": fmt_time(leg.get("to",{}).get("arrival",""))}
-        if leg.get("routeShortName"): l["route"] = leg["routeShortName"]
-        if leg.get("headsign"): l["headsign"] = leg["headsign"]
-        if leg.get("cancelled"): l["cancelled"] = True
-        if stops: l["intermediateStops"] = stops
-        legs.append(l)
-    return {"tripId": trip_id, "legs": legs}
-
-def health():
-    return api_get("/api/v1/health")
-
-def reachable(lat, lon, max_time_min, time=None, arrive_by=False):
-    """Isochrones: destinations reachable within time budget."""
-    err = _check_coords(lat, lon)
-    if err: return err
-    params = {"one": f"{lat},{lon}", "maxTravelTime": max_time_min}
-    if time: params["time"] = normalize_time(time)
-    params["arriveBy"] = str(arrive_by).lower()
-    data = api_get("/api/v6/one-to-all", params)
-    if "error" in data: return data
-    if "transport_error" in data: return data
-    places = data.get("all", []) if isinstance(data, dict) else []
-    results = [{"name": p.get("place",{}).get("name","?"),
-                "lat": p.get("place",{}).get("lat"),
-                "lon": p.get("place",{}).get("lon"),
-                "travelTime_min": round(p.get("duration",0)/60)} for p in places[:50] if isinstance(p, dict)]
-    return {"origin": [lat, lon], "maxTime_min": max_time_min, "reachable": results}
-
-def refresh(itinerary_id):
-    """Re-fetch an itinerary with real-time updates."""
-    return api_get("/api/v6/refresh-itinerary", {"itineraryId": itinerary_id})
-
-def rentals_nearby(lat, lon, radius=1000):
-    """Nearby shared bikes, scooters, and cars (GBFS)."""
-    err = _check_coords(lat, lon)
-    if err: return err
-    data = api_get("/api/v1/rentals", {"point": f"{lat},{lon}", "radius": radius})
-    if "error" in data: return data
-    if "transport_error" in data: return data
-    return data
-
-def one_to_many(from_lat, from_lon, destinations, mode="WALK", max_sec=3600, arrive_by=False):
-    """Street routing from one origin to multiple destinations."""
-    err = _check_coords(from_lat, from_lon)
-    if err: return err
-    if not destinations: return {"error": "destinations must not be empty"}
-    for d in destinations:
-        if not isinstance(d, (list, tuple)) or len(d) < 2:
-            return {"error": f"Invalid destination: {d!r}, expected [lat, lon]"}
-    params = {"one": f"{from_lat};{from_lon}", "mode": mode, "max": max_sec,
-              "maxMatchingDistance": 25, "arriveBy": str(arrive_by).lower(),
-              "many": ",".join(f"{d[0]};{d[1]}" for d in destinations)}
-    data = api_get("/api/v1/one-to-many", params)
-    if "error" in data: return data
-    if "transport_error" in data: return data
-    return data
-
-def one_to_many_transit(from_lat, from_lon, destinations, time=None, arrive_by=False,
-                         max_transfers=5, transit_modes=None, max_walk_sec=900,
-                         max_travel_minutes=60):
-    """Transit routing from one origin to multiple destinations."""
-    err = _check_coords(from_lat, from_lon)
-    if err: return err
-    if not destinations: return {"error": "destinations must not be empty"}
-    for d in destinations:
-        if not isinstance(d, (list, tuple)) or len(d) < 2:
-            return {"error": f"Invalid destination: {d!r}, expected [lat, lon]"}
-    if not transit_modes: transit_modes = ["TRANSIT"]
-    for m in transit_modes:
-        if m not in TRANSIT_MODES:
-            return {"error": f"Unknown mode: {m}"}
-    params = {"one": f"{from_lat};{from_lon}", "maxTransfers": max_transfers,
-              "maxTravelTime": max_travel_minutes, "maxMatchingDistance": 25,
-              "maxPreTransitTime": max_walk_sec, "maxPostTransitTime": max_walk_sec,
-              "arriveBy": str(arrive_by).lower(), "transitModes": transit_modes,
-              "many": ",".join(f"{d[0]};{d[1]}" for d in destinations)}
-    if time: params["time"] = normalize_time(time)
-    data = api_get("/api/experimental/one-to-many-intermodal", params)
-    if "error" in data: return data
-    if "transport_error" in data: return data
-    return data
-
-def map_trips(min_lat, min_lon, max_lat, max_lon, start_time, end_time,
-              zoom=12):
-    """Active transit trips in a bounding box with real-time positions."""
-    err = _check_coords(min_lat, min_lon) or _check_coords(max_lat, max_lon)
-    if err: return err
-    params = {"min": f"{min_lat},{min_lon}", "max": f"{max_lat},{max_lon}",
-              "zoom": zoom,
-              "startTime": normalize_time(start_time),
-              "endTime": normalize_time(end_time)}
-    data = api_get("/api/v6/map/trips", params)
-    if "error" in data: return data
-    if "transport_error" in data: return data
-    trips = data if isinstance(data, list) else []
-    results = []
-    for t in trips[:50]:
-        if not isinstance(t, dict): continue
-        inner = t.get("trips", [{}])[0] if t.get("trips") else {}
-        r = {"tripId": inner.get("tripId","?"),
-             "route": inner.get("displayName", t.get("routeShortName","?")),
-             "mode": t.get("mode","?"),
-             "from": t.get("from",{}).get("name","?"),
-             "to": t.get("to",{}).get("name","?"),
-             "departure": fmt_time(t.get("departure","")),
-             "arrival": fmt_time(t.get("arrival",""))}
-        if t.get("from",{}).get("lat"): r["from_lat"] = t["from"]["lat"]
-        if t.get("from",{}).get("lon"): r["from_lon"] = t["from"]["lon"]
-        if t.get("to",{}).get("lat"): r["to_lat"] = t["to"]["lat"]
-        if t.get("to",{}).get("lon"): r["to_lon"] = t["to"]["lon"]
-        if t.get("realTime"): r["realTime"] = True
-        results.append(r)
-    return {"bbox": {"min": [min_lat, min_lon], "max": [max_lat, max_lon]},
-            "zoom": zoom, "trips": results}
+# The accepted mode sets come from the foundation, never a second copy.
+TRANSIT_MODES = tuple(sorted(plan.ACCEPTED_MODES))
+GEOCODE_MODES = list(geocode.GEOCODE_MODES)
+MATCH_TYPES = list(geocode.MATCH_TYPES)
 
 # ── Tool registry ───────────────────────────────────────────────────
 
 TOOLS = [
-    {"name":"transit_plan","description":"Plan a public transit route between two locations. Returns step-by-step itineraries with modes, times, and transfers.",
-     "inputSchema":{"type":"object","properties":{
-         "from_lat":{"type":"number"},"from_lon":{"type":"number"},
-         "to_lat":{"type":"number"},"to_lon":{"type":"number"},
-         "time":{"type":"string","description":"ISO datetime (default: now)"},
-         "arrive_by":{"type":"boolean"},
-         "max_transfers":{"type":"integer","description":"default: 5"},
-         "transit_modes":{"type":"array","items":{"type":"string","enum":TRANSIT_MODES}},
-         "num_itineraries":{"type":"integer","description":"default: 3"},
-         "max_walking_minutes":{"type":"integer","description":"Max walk per leg in minutes","default":30}},
-     "required":["from_lat","from_lon","to_lat","to_lon"]}},
-    {"name":"transit_geocode","description":"Geocode a place name/address/stop to coordinates.",
-     "inputSchema":{"type":"object","properties":{"query":{"type":"string"},"limit":{"type":"integer","description":"Max results (default: 5)"}},
-     "required":["query"]}},
-    {"name":"transit_departures","description":"Live departure board for a stop. Use stop IDs from geocode or nearby_stops.",
-     "inputSchema":{"type":"object","properties":{
-         "stop":{"type":"string","description":"Stop ID"},
-         "count":{"type":"integer","description":"default: 10"},
-         "time":{"type":"string","description":"ISO datetime (default: now)"},
-         "window":{"type":"integer","description":"Time window in seconds"}},
-     "required":["stop"]}},
-    {"name":"transit_nearby_stops","description":"Find transit stops near a location.",
-     "inputSchema":{"type":"object","properties":{
-         "lat":{"type":"number"},"lon":{"type":"number"},
-         "radius":{"type":"integer","description":"Meters (default: 1000, max: 5000)"}},
-     "required":["lat","lon"]}},
-    {"name":"transit_reverse_geocode","description":"Convert coordinates to the nearest transit stop or address.",
-     "inputSchema":{"type":"object","properties":{"lat":{"type":"number"},"lon":{"type":"number"}},
-     "required":["lat","lon"]}},
-    {"name":"transit_trip","description":"Get full trip details including stop sequence. Use tripId from plan or departures results.",
-     "inputSchema":{"type":"object","properties":{
-         "trip_id":{"type":"string","description":"Trip ID from plan/departures"}},
-     "required":["trip_id"]}},
-    {"name":"transit_health","description":"Check if the Transitous API server is healthy.",
-     "inputSchema":{"type":"object","properties":{}}},
-    {"name":"transit_reachable","description":"Find destinations reachable within a time budget (isochrones).",
-     "inputSchema":{"type":"object","properties":{
-         "lat":{"type":"number"},"lon":{"type":"number"},
-         "max_time_min":{"type":"integer","description":"Maximum travel time in minutes"},
-         "time":{"type":"string","description":"ISO datetime (default: now)"},
-         "arrive_by":{"type":"boolean"}},
-     "required":["lat","lon","max_time_min"]}},
-    {"name":"transit_refresh","description":"Refresh an itinerary with real-time updates. Use itinerary ID from plan results.",
-     "inputSchema":{"type":"object","properties":{
-         "itinerary_id":{"type":"string","description":"Itinerary ID from transit_plan"}},
-     "required":["itinerary_id"]}},
-    {"name":"transit_rentals","description":"Find nearby rental bikes, scooters, and cars (GBFS sharing systems).",
-     "inputSchema":{"type":"object","properties":{"lat":{"type":"number"},"lon":{"type":"number"},"radius":{"type":"integer","description":"Search radius in meters (default: 1000)"}},
-     "required":["lat","lon"]}},
-    {"name":"transit_one_to_many","description":"Street routing from one origin to multiple destinations.",
-     "inputSchema":{"type":"object","properties":{
-         "from_lat":{"type":"number"},"from_lon":{"type":"number"},
-         "destinations":{"type":"array","items":{"type":"array","items":{"type":"number"},"minItems":2,"maxItems":2}},
-         "mode":{"type":"string","description":"WALK, BIKE, or CAR (default: WALK)"},
-         "max_sec":{"type":"integer","description":"Max travel time in seconds (default: 3600)"},
-         "arrive_by":{"type":"boolean","description":"If true, many-to-one routing"}},
-     "required":["from_lat","from_lon","destinations"]}},
-    {"name":"transit_one_to_many_transit","description":"Transit routing from one origin to multiple destinations. Like transit_plan but for N destinations in one call.",
-     "inputSchema":{"type":"object","properties":{
-         "from_lat":{"type":"number"},"from_lon":{"type":"number"},
-         "destinations":{"type":"array","items":{"type":"array","items":{"type":"number"},"minItems":2,"maxItems":2}},
-         "time":{"type":"string","description":"ISO datetime (default: now)"},
-         "arrive_by":{"type":"boolean","description":"If true, many-to-one routing"},
-         "max_transfers":{"type":"integer","description":"Max transfers (default: 5)"},
-         "transit_modes":{"type":"array","items":{"type":"string","enum":TRANSIT_MODES}},
-         "max_walking_minutes":{"type":"integer","description":"Max walk per leg in minutes","default":15},
-         "max_travel_minutes":{"type":"integer","description":"Max total travel time in minutes","default":60}},
-     "required":["from_lat","from_lon","destinations"]}},
-    {"name":"transit_map_trips","description":"Active transit trips in a bounding box. Like a live transit map — see what buses/trains are near a location right now.",
-     "inputSchema":{"type":"object","properties":{
-         "min_lat":{"type":"number"},"min_lon":{"type":"number"},
-         "max_lat":{"type":"number"},"max_lon":{"type":"number"},
-         "zoom":{"type":"integer","description":"Zoom level 1-19 (default: 12). High zoom=local, low=long-distance"},
-         "start_time":{"type":"string","description":"ISO datetime (default: now)"},
-         "end_time":{"type":"string","description":"ISO datetime (default: start + 30 min)"}},
-     "required":["min_lat","min_lon","max_lat","max_lon","start_time","end_time"]}},
+    {
+        "name": "transit_plan",
+        "description": (
+            "Plan a public transit journey between two endpoints. Each endpoint is either a stop id "
+            "(from_stop_id / to_stop_id, sent to the planner verbatim) or a coordinate pair "
+            "(from_lat+from_lon / to_lat+to_lon); the two endpoints may use different forms, but "
+            "supplying both forms for one endpoint is invalid_input/mixed_endpoint_form. `time` may "
+            "be an explicit offset-bearing instant (passed through unchanged, never re-read or "
+            "shifted), a naive local clock, a date-only value (its local midnight), or omitted (now). "
+            "A naive clock or date is read in the endpoint zone that owns the decision: the origin "
+            "for a depart_after search, and the destination zone for an arrive_by search, so 'be "
+            "there by 18:00' means the destination's 18:00. A deliberate `timezone` supplies that "
+            "reading explicitly; origin_timezone / destination_timezone declare an endpoint's "
+            "display zone, which the response echoes per endpoint. A naive clock skipped by a DST "
+            "gap is rejected as invalid_input/nonexistent_local_time naming the gap, and a repeated "
+            "clock as invalid_input/ambiguous_local_time with both candidate offsets and instants - "
+            "never resolved silently; the remedy is an explicit offset instant or a zone. The result "
+            "is one canonical envelope: time_frame, query (the effective query echo: control, "
+            "requested and effective instant, search_window_seconds, minimum_requested, "
+            "upstream_count, returned_count, max_results, truncated/truncation_reason/dropped_count, "
+            "both page cursors, requested/applied modes, realtime_present), from/to place objects, "
+            "itineraries in upstream order, direct street-only alternatives when include_direct is "
+            "true, constraints_active, and warnings. Itineraries and legs carry one canonical "
+            "timestamp object per instant, each rendered in its own endpoint's zone (zone is null "
+            "with zone_source unavailable when the payload supplied none). This is a bounded search "
+            "context, not a whole-day optimum: nothing is re-sorted, de-duplicated or selected as "
+            "best, and max_results truncates after upstream ordering with truncated and "
+            "truncation_reason reporting the cut. continuation holds previous and next, each a "
+            "cursor frozen together with the complete effective query; replay by passing that object "
+            "alone, and any contradicting argument is rejected as "
+            "invalid_input/cursor_without_identical_query naming every differing field. An empty "
+            "answer is outcome no_routes with no_routes_reason (street_only_alternatives_returned or "
+            "not_determined) plus constraints_active; it never claims which supplied constraint "
+            "caused it. Durations are integer seconds and an unknown value is null, never zero. RAIL "
+            "is a parent mode covering high-speed, long-distance, night, regional, suburban and "
+            "subway classes, so it is not 'mainline only'; REGIONAL_RAIL, LONG_DISTANCE, METRO and "
+            "SUBWAY are the values that distinguish service classes. Street modes are rejected as "
+            "street_mode_not_transit and unknown spellings as unknown_mode."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "from_stop_id": {
+                    "type": "string",
+                    "description": "Origin stop id, sent verbatim (exactly one form per endpoint)",
+                },
+                "to_stop_id": {
+                    "type": "string",
+                    "description": "Destination stop id, sent verbatim (exactly one form per endpoint)",
+                },
+                "from_lat": {"type": "number", "description": "Origin latitude, -90..90"},
+                "from_lon": {"type": "number", "description": "Origin longitude, -180..180"},
+                "to_lat": {"type": "number", "description": "Destination latitude, -90..90"},
+                "to_lon": {"type": "number", "description": "Destination longitude, -180..180"},
+                "time": {
+                    "type": "string",
+                    "description": (
+                        "Explicit offset instant (2026-10-27T09:00:00Z), naive local clock "
+                        "(2026-10-27T09:00) read at the rotated endpoint, or date (2026-10-27) for "
+                        "its local midnight; omitted means now. Never an offset-less value sent "
+                        "upstream."
+                    ),
+                },
+                "arrive_by": {
+                    "type": "boolean",
+                    "description": "false = depart after `time` (origin local); true = arrive by it (destination local)",
+                    "default": False,
+                },
+                "timezone": {
+                    "type": "string",
+                    "description": "Caller IANA zone used to read a naive clock; a deliberate frame, never an endpoint claim",
+                },
+                "origin_timezone": {
+                    "type": "string",
+                    "description": "Declared origin display zone (IANA); outranks stop/discovery evidence",
+                },
+                "destination_timezone": {
+                    "type": "string",
+                    "description": "Declared destination display zone (IANA); outranks stop/discovery evidence",
+                },
+                "max_transfers": {"type": "integer", "minimum": 0, "maximum": 10, "default": 5},
+                "transit_modes": {
+                    "type": "array",
+                    "items": {"type": "string", "enum": list(TRANSIT_MODES)},
+                    "default": ["TRANSIT"],
+                    "description": (
+                        "Accepted transit modes, sent in caller order as one comma-joined value. "
+                        "RAIL is a parent mode covering high-speed, long-distance, night, regional, "
+                        "suburban and subway classes, not mainline only."
+                    ),
+                },
+                "num_itineraries": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "default": 5,
+                    "description": "Minimum itineraries requested; echoed as query.minimum_requested",
+                },
+                "max_itineraries": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50,
+                    "description": "Upstream computation cap; approximate, never a returned-result limit",
+                },
+                "max_results": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50,
+                    "description": (
+                        "Strict wrapper cap applied after upstream ordering; the only thing that "
+                        "makes truncated meaningful. Omit to return every supplied itinerary."
+                    ),
+                },
+                "search_window_seconds": {
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 86400,
+                    "default": 900,
+                    "description": "Upstream searchWindow, in seconds",
+                },
+                "continuation": {
+                    "type": "object",
+                    "properties": {
+                        "cursor": {"type": "string", "description": "A previous/next cursor, verbatim"},
+                        "query": {
+                            "type": "object",
+                            "description": (
+                                "The frozen effective query returned beside that cursor; it is the "
+                                "authority and is validated with the same rules as a first call"
+                            ),
+                        },
+                    },
+                    "required": ["cursor", "query"],
+                    "additionalProperties": False,
+                    "description": (
+                        "Pass continuation.previous or continuation.next from a previous result, "
+                        "alone. A separately supplied argument that contradicts the frozen query is "
+                        "rejected as cursor_without_identical_query naming the fields."
+                    ),
+                },
+                "include_direct": {
+                    "type": "boolean",
+                    "default": True,
+                    "description": "Include the upstream's street-only direct alternatives when non-empty",
+                },
+                "max_access_walk_minutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 120,
+                    "default": 15,
+                    "description": "Access walk cap per endpoint, in minutes (sent as maxPreTransitTime)",
+                },
+                "max_egress_walk_minutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 120,
+                    "default": 15,
+                    "description": "Egress walk cap per endpoint, in minutes (sent as maxPostTransitTime)",
+                },
+                "min_transfer_minutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 120,
+                    "default": 0,
+                    "description": "Minimum transfer time, in minutes (sent as minTransferTime)",
+                },
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "transit_geocode",
+        "description": (
+            "Resolve a place name, address or stop to canonical matches. `types` restricts the match "
+            "kinds (ADDRESS, PLACE, STOP) and `modes` filters stops by available transport modes; both "
+            "are sent upstream as one comma-joined value in the caller's order rather than enforced "
+            "client-side. RAIL in `modes` does not separate mainline from Metro: it expands to the "
+            "rail-ish classes including subway. `near` (a lat/lon pair) biases the ranking toward that "
+            "coordinate and filters nothing; `near_bias` (0..1) sets how strongly. A single-result "
+            "request is not a disambiguation strategy, and dataset names differ from colloquial "
+            "names, so refine the query text instead of assuming the first hit is meant. Every match "
+            "reports name, match_type, match_id, stop_id, lat, lon, modes, importance, country, "
+            "timezone, score, category, street, house_number, zip, level and areas. stop_id is "
+            "populated only when match_type is STOP, and is then the same value as match_id because "
+            "that identifier is accepted by the planner; for ADDRESS and PLACE matches stop_id is "
+            "null and match_id is the only identifier. The geocode Match schema carries no parent "
+            "grouping, so no parent_id is returned and no enrichment request is made; use "
+            "transit_nearby_stops for parent grouping. num_results defaults to 10 and is bounded "
+            "1..40 and is a request parameter, not a client-side slice; count is the number of "
+            "matches the upstream returned."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Place name, address or stop name"},
+                "types": {
+                    "type": "array",
+                    "items": {"type": "string", "enum": MATCH_TYPES},
+                    "description": "Restrict match kinds; sent as one comma-joined `type` value",
+                },
+                "modes": {
+                    "type": "array",
+                    "items": {"type": "string", "enum": GEOCODE_MODES},
+                    "description": "Filter stops by available transport modes; sent as one `mode` value",
+                },
+                "near": {
+                    "type": "array",
+                    "items": {"type": "number"},
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "description": "[lat, lon] ranking bias; filters nothing",
+                },
+                "near_bias": {"type": "number", "minimum": 0, "maximum": 1},
+                "num_results": {"type": "integer", "minimum": 1, "maximum": 40, "default": 10},
+                "language": {"type": "string", "description": "Preferred result language"},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "transit_departures",
+        "description": (
+            "Live departure board for one stop id (from transit_geocode or transit_nearby_stops). "
+            "`time` follows the transit_plan forms: an explicit offset-bearing instant is sent "
+            "unchanged, while a naive clock or date-only value is read in the stop's own zone, "
+            "resolved from stop metadata with at most one lookup and overridable by `timezone` or the "
+            "deliberate `endpoint_timezone`; a skipped or repeated local clock is rejected rather "
+            "than guessed. count defaults to 10 (1..50) and `window` is an optional 1..86400 second "
+            "span. Each departure keeps scheduled and realtime apart: scheduled_departure is the "
+            "timetable time, expected_departure is populated only when the payload carries realtime "
+            "and a departure value, realtime comes from the required StopTime.realTime flag (a body "
+            "omitting it is malformed_upstream), and `scheduled` is always null because the pinned "
+            "StopTime has no such property - realtime availability says nothing about whether the "
+            "service was originally scheduled and is never its negation. delay_seconds is expected "
+            "minus scheduled in integer seconds, or null when either is absent. trip_cancelled and "
+            "stop_cancelled are tri-state: true, false, or null when the payload is silent."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "stop_id": {"type": "string", "description": "Stop id, verbatim"},
+                "count": {"type": "integer", "minimum": 1, "maximum": 50, "default": 10},
+                "time": {
+                    "type": "string",
+                    "description": "Explicit offset instant, naive clock or date; omitted means now",
+                },
+                "window": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 86400,
+                    "description": "Departure window in seconds",
+                },
+                "timezone": {"type": "string", "description": "Caller IANA zone for a naive clock"},
+                "endpoint_timezone": {"type": "string", "description": "Declared stop display zone (IANA)"},
+            },
+            "required": ["stop_id"],
+        },
+    },
+    {
+        "name": "transit_nearby_stops",
+        "description": (
+            "Find the nearest transit stops around a coordinate. radius is in metres, 1..5000, "
+            "default 1000, and becomes the request's bounding box. Results are the nearest 20 stops "
+            "inside that radius, nearest first, each with stop_id, name, lat, lon, distance_m and the "
+            "stop metadata the map payload supplies (modes, timezone, parent_id, vertex_type); an "
+            "absent member is null and never fabricated, and no enrichment request is made. Coverage "
+            "is the requested window's results, not a guaranteed global nearest set: near a pole, or "
+            "at a clamped antimeridian edge, a stop inside the radius can fall outside the box the "
+            "upstream was asked for, and a stop the upstream never returns cannot be reported. count "
+            "is the post-truncation length and truncated is the cut signal."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "lat": {"type": "number", "description": "Latitude, -90..90"},
+                "lon": {"type": "number", "description": "Longitude, -180..180"},
+                "radius": {"type": "integer", "minimum": 1, "maximum": 5000, "default": 1000},
+            },
+            "required": ["lat", "lon"],
+        },
+    },
+    {
+        "name": "transit_reverse_geocode",
+        "description": (
+            "Convert coordinates to the closest places, stops or addresses. `types` restricts the "
+            "match kinds (ADDRESS, PLACE, STOP) and `num_results` (1..40) bounds how many are "
+            "requested; both are omitted from the request unless supplied, leaving the upstream's "
+            "own defaults in force. Each match reports name, match_type, match_id, stop_id, lat, lon "
+            "and the metadata the payload supplies. stop_id is populated only for a STOP match and "
+            "then equals match_id; ADDRESS and PLACE matches carry stop_id null. The Match schema "
+            "carries no parent grouping, so no parent_id is returned and no enrichment request is "
+            "made."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "lat": {"type": "number", "description": "Latitude, -90..90"},
+                "lon": {"type": "number", "description": "Longitude, -180..180"},
+                "types": {
+                    "type": "array",
+                    "items": {"type": "string", "enum": MATCH_TYPES},
+                    "description": "Restrict match kinds",
+                },
+                "num_results": {"type": "integer", "minimum": 1, "maximum": 40},
+            },
+            "required": ["lat", "lon"],
+        },
+    },
+    {
+        "name": "transit_trip",
+        "description": (
+            "Full stop sequence for one trip id from transit_plan or transit_departures. The tool "
+            "takes no time input, so every time is rendered from the payload's own endpoint zones "
+            "rather than re-read in a caller frame. Each leg reports index, mode, from/to places, "
+            "departure/arrival, the scheduled pair when supplied, realtime and scheduled tri-states, "
+            "the cancellation split (a failed street leg reports walking_route_unavailable and "
+            "duration_is_estimate with cancelled null, while a transit leg reports its own "
+            "cancelled), route, headsign, agency_name, intermediate_stop_count and intermediate_stops. "
+            "Each intermediate stop reports stop_id, name, arrival, departure, the scheduled pair, "
+            "track, cancelled and stop_cancelled; a place that is an endpoint of a failed street path "
+            "is never reported as a cancelled stop."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "trip_id": {"type": "string", "description": "Trip id from transit_plan or transit_departures"},
+            },
+            "required": ["trip_id"],
+        },
+    },
+    {
+        "name": "transit_health",
+        "description": (
+            "Check whether the Transitous API server is healthy. Returns a raw provider payload: the "
+            "upstream response unchanged, not the canonical envelope, so its shape is the "
+            "upstream's."
+        ),
+        "inputSchema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "transit_reachable",
+        "description": (
+            "Find places reachable from one coordinate within a travel-time budget. max_time_min is "
+            "1..1440 (default 60). The single `one` endpoint is the origin when arrive_by is false "
+            "and the destination when arrive_by is true; query.one_role names which, and a naive "
+            "clock is read in that endpoint's zone (overridable by `timezone` or `endpoint_timezone`) "
+            "rather than in either of the places that merely happen to be reachable. Each entry "
+            "reports name, lat, lon, travel_time_seconds (integer seconds from the payload's "
+            "duration) and transfers_k verbatim (k=1 direct, k=2 one transfer): one seconds field, "
+            "one name, no minute alias and no second change-counting definition. Both members are "
+            "optional upstream, so an absent one is null, never zero. The result is the upstream's "
+            "bounded reachable set, not a complete reachable area and not a time-band guarantee."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "lat": {"type": "number", "description": "Latitude of the `one` endpoint, -90..90"},
+                "lon": {"type": "number", "description": "Longitude of the `one` endpoint, -180..180"},
+                "max_time_min": {"type": "integer", "minimum": 1, "maximum": 1440, "default": 60},
+                "time": {
+                    "type": "string",
+                    "description": "Explicit offset instant, naive clock or date; omitted means now",
+                },
+                "arrive_by": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "false = `one` is the origin; true = `one` is the destination",
+                },
+                "timezone": {"type": "string", "description": "Caller IANA zone for a naive clock"},
+                "endpoint_timezone": {"type": "string", "description": "Declared `one` endpoint zone (IANA)"},
+            },
+            "required": ["lat", "lon"],
+        },
+    },
+    {
+        "name": "transit_refresh",
+        "description": (
+            "Re-fetch one itinerary with real-time updates, using itinerary_id from transit_plan. "
+            "Returns a raw provider payload: the upstream response unchanged, not the canonical "
+            "envelope. Failures still use the canonical error result."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "itinerary_id": {"type": "string", "description": "Itinerary id from transit_plan"},
+            },
+            "required": ["itinerary_id"],
+        },
+    },
+    {
+        "name": "transit_rentals",
+        "description": (
+            "Find nearby shared bikes, scooters and cars (GBFS sharing systems). Returns a raw "
+            "provider payload: the upstream response unchanged, not the canonical envelope. "
+            "Failures still use the canonical error result."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "lat": {"type": "number", "description": "Latitude, -90..90"},
+                "lon": {"type": "number", "description": "Longitude, -180..180"},
+                "radius": {"type": "integer", "description": "Search radius in meters (default: 1000)"},
+            },
+            "required": ["lat", "lon"],
+        },
+    },
+    {
+        "name": "transit_one_to_many",
+        "description": (
+            "Street durations from one coordinate to 1..50 destinations. No clock is involved, so no "
+            "time is accepted or reported. `one` (from_lat/from_lon) is the origin, or the "
+            "destination when arrive_by is true; query.one_role states which and the destination "
+            "array supplies the other side. The server may impose its own maximum street duration; "
+            "no wrapper guarantee overrides that limit. Results are indexed to the requested "
+            "destination order and carry the requested lat/lon plus duration_seconds and "
+            "distance_meters from that index's Duration, preserving finite fractional values without "
+            "rounding. An empty Duration is null/null, never zero. A missing or extra entry is "
+            "malformed_upstream/unexpected_shape, and the result is no_routes only when every "
+            "destination lacks a duration."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "from_lat": {"type": "number", "description": "Latitude of the `one` endpoint, -90..90"},
+                "from_lon": {"type": "number", "description": "Longitude of the `one` endpoint, -180..180"},
+                "destinations": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {"type": "number"},
+                        "minItems": 2,
+                        "maxItems": 2,
+                    },
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "description": "Destination [lat, lon] pairs, in result order",
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": ["WALK", "BIKE", "CAR"],
+                    "default": "WALK",
+                    "description": "Street profile; exactly WALK, BIKE or CAR",
+                },
+                "max_sec": {
+                    "type": "number",
+                    "default": 3600,
+                    "description": "Maximum street duration in seconds; finite and non-negative",
+                },
+                "arrive_by": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "false = many-to-one is off (`one` is origin); true = `one` is the destination",
+                },
+            },
+            "required": ["from_lat", "from_lon", "destinations"],
+        },
+    },
+    {
+        "name": "transit_one_to_many_transit",
+        "description": (
+            "Street duration plus the transit Pareto set for every destination (1..50). `time` "
+            "follows the transit_plan forms and a naive clock is read at the `one` endpoint's zone "
+            "(overridable by `timezone` or `endpoint_timezone`); `one` is the origin for arrive_by "
+            "false and the destination for arrive_by true, which query.one_role reports. "
+            "Walking-minute names align with transit_plan; transit_modes defaults to [\"TRANSIT\"] and "
+            "RAIL is a parent mode. query.applied_modes lists the modes actually applied in caller "
+            "order, and those same values are sent upstream as one comma-joined transitModes value. "
+            "Results are indexed to the requested destination order: street_duration_seconds, "
+            "street_distance_meters and `transit`, an array of {duration_seconds, transfers} in "
+            "supplied Pareto order. Pareto durations are the seconds as returned, and the upstream "
+            "currently reports them at whole minutes' resolution, so they are not second-accurate. An "
+            "empty Pareto set means no transit connection for that destination: it is an empty "
+            "`transit` array with the street fields still populated, never a zero duration. Missing "
+            "required Pareto members are malformed, not defaults, and transfers keeps the schema's "
+            "own name."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "from_lat": {"type": "number", "description": "Latitude of the `one` endpoint, -90..90"},
+                "from_lon": {"type": "number", "description": "Longitude of the `one` endpoint, -180..180"},
+                "destinations": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {"type": "number"},
+                        "minItems": 2,
+                        "maxItems": 2,
+                    },
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "description": "Destination [lat, lon] pairs, in result order",
+                },
+                "time": {
+                    "type": "string",
+                    "description": "Explicit offset instant, naive clock or date; omitted means now",
+                },
+                "arrive_by": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "false = one-to-many (`one` is origin); true = many-to-one (`one` is destination)",
+                },
+                "max_transfers": {"type": "integer", "minimum": 0, "maximum": 10, "default": 5},
+                "transit_modes": {
+                    "type": "array",
+                    "items": {"type": "string", "enum": list(TRANSIT_MODES)},
+                    "default": ["TRANSIT"],
+                },
+                "max_access_walk_minutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 120,
+                    "default": 15,
+                },
+                "max_egress_walk_minutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 120,
+                    "default": 15,
+                },
+                "max_travel_minutes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1440,
+                    "default": 60,
+                },
+                "timezone": {"type": "string", "description": "Caller IANA zone for a naive clock"},
+                "endpoint_timezone": {"type": "string", "description": "Declared `one` endpoint zone (IANA)"},
+            },
+            "required": ["from_lat", "from_lon", "destinations"],
+        },
+    },
+    {
+        "name": "transit_map_trips",
+        "description": (
+            "Active trips inside a bounding box and time window. min_lat/min_lon/max_lat/max_lon are "
+            "required, with corners in range and min strictly less than max on both axes; start_time "
+            "is strictly before end_time; zoom is 1..19 (default 12), high zoom meaning local and "
+            "low meaning long-distance. A bounding box has no single endpoint zone, so a naive "
+            "(offset-less) start_time or end_time is invalid_input/"
+            "bbox_window_requires_explicit_zone unless a caller `timezone` is supplied; explicit "
+            "offset instants need no zone. Each trip segment reports trip_id, route, mode, from/to "
+            "places, departure/arrival, the scheduled pair, from_lat/from_lon/to_lat/to_lon, "
+            "distance_meters, polyline_present and realtime from the required TripSegment.realTime "
+            "(a body omitting it is malformed_upstream). There is no vehicle_position field: the "
+            "pinned schema has no position slot and no supported source provides one. At most 50 "
+            "segments are returned; upstream_count, returned_count and truncated report the cut."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "min_lat": {"type": "number", "description": "Latitude of the south-west corner, -90..90"},
+                "min_lon": {"type": "number", "description": "Longitude of the south-west corner, -180..180"},
+                "max_lat": {"type": "number", "description": "Latitude of the north-east corner, -90..90"},
+                "max_lon": {"type": "number", "description": "Longitude of the north-east corner, -180..180"},
+                "start_time": {
+                    "type": "string",
+                    "description": "Explicit offset instant, or a naive clock with a caller timezone",
+                },
+                "end_time": {
+                    "type": "string",
+                    "description": "Explicit offset instant, or a naive clock with a caller timezone",
+                },
+                "zoom": {"type": "integer", "minimum": 1, "maximum": 19, "default": 12},
+                "timezone": {
+                    "type": "string",
+                    "description": (
+                        "Caller IANA zone; the only way to read a naive window, because a bounding "
+                        "box has no endpoint zone"
+                    ),
+                },
+            },
+            "required": ["min_lat", "min_lon", "max_lat", "max_lon", "start_time", "end_time"],
+        },
+    },
 ]
 
 # ── Tool dispatch ───────────────────────────────────────────────────
 
+
+def _bounded(value, limit=80):
+    text = value if isinstance(value, str) else repr(value)
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+def _required_id(value, argument):
+    """A tool argument the raw endpoints need as a non-empty string."""
+    if not isinstance(value, str) or not value.strip():
+        errors.fail(
+            errors.VALUE_OUT_OF_RANGE,
+            f"{argument} must be a non-empty string",
+            {"argument": argument, "value": _bounded(value), "expected": "non-empty string"},
+        )
+    return value
+
+
+def _unknown_tool(name):
+    """A closed inventory is a closed value set, so an unknown name is a value fault."""
+    return errors.error_result(
+        errors.VALUE_OUT_OF_RANGE,
+        f"Unknown tool: {name}",
+        {"argument": "name", "value": _bounded(name), "accepted": [tool["name"] for tool in TOOLS]},
+    )
+
+
 def handle_call(name, args):
+    """Dispatch one ``tools/call`` and always return a canonical payload object."""
+    if not isinstance(args, dict):
+        return errors.error_result(
+            errors.VALUE_OUT_OF_RANGE,
+            "tool arguments must be an object",
+            {"argument": "arguments", "value": _bounded(args), "expected": "object"},
+        )
     try:
         return _dispatch(name, args)
-    except KeyError as e:
-        return {"error": f"Missing required parameter: {e}"}
-    except (ValueError, TypeError, IndexError) as e:
-        return {"error": f"Invalid parameter: {e}"}
+    except errors.ToolError as exc:
+        return exc.to_result()
+
 
 def _dispatch(name, args):
+    """The thin adapter: one accepted callable per tool, no mapping logic here."""
     if name == "transit_plan":
-        wm = args.get("max_walking_minutes")
-        if wm is None: wm = 30
-        return plan_route(args["from_lat"], args["from_lon"],
-                          args["to_lat"], args["to_lon"],
-                          time=args.get("time"), arrive_by=args.get("arrive_by",False),
-                          max_transfers=args.get("max_transfers",5),
-                          transit_modes=args.get("transit_modes"),
-                          num_itineraries=args.get("num_itineraries",3),
-                          max_walk_sec=wm * 60)
-    elif name == "transit_geocode":
-        return geocode_stop(args["query"], limit=args.get("limit",5))
-    elif name == "transit_departures":
-        return departures(args["stop"], count=args.get("count",10),
-                         time=args.get("time"), window=args.get("window"))
-    elif name == "transit_nearby_stops":
-        return nearby_stops(args["lat"], args["lon"], radius=args.get("radius",1000))
-    elif name == "transit_reverse_geocode":
-        return reverse_geocode(args["lat"], args["lon"])
-    elif name == "transit_trip":
-        return trip_details(args["trip_id"])
-    elif name == "transit_health":
-        return health()
-    elif name == "transit_reachable":
-        return reachable(args["lat"], args["lon"], args["max_time_min"],
-                        time=args.get("time"), arrive_by=args.get("arrive_by",False))
-    elif name == "transit_refresh":
-        return refresh(args["itinerary_id"])
-    elif name == "transit_rentals":
-        return rentals_nearby(args["lat"], args["lon"], radius=args.get("radius",1000))
-    elif name == "transit_one_to_many":
-        return one_to_many(args["from_lat"], args["from_lon"],
-                          args["destinations"], mode=args.get("mode","WALK"),
-                          max_sec=args.get("max_sec",3600),
-                          arrive_by=args.get("arrive_by",False))
-    elif name == "transit_one_to_many_transit":
-        wm = args.get("max_walking_minutes")
-        if wm is None: wm = 15
-        tm = args.get("max_travel_minutes")
-        if tm is None: tm = 60
-        return one_to_many_transit(args["from_lat"], args["from_lon"],
-                                   args["destinations"],
-                                   time=args.get("time"),
-                                   arrive_by=args.get("arrive_by",False),
-                                   max_transfers=args.get("max_transfers",5),
-                                   transit_modes=args.get("transit_modes"),
-                                   max_walk_sec=wm * 60,
-                                   max_travel_minutes=tm)
-    elif name == "transit_map_trips":
-        return map_trips(args["min_lat"], args["min_lon"],
-                        args["max_lat"], args["max_lon"],
-                        args["start_time"], args["end_time"],
-                        zoom=args.get("zoom",12))
-    return {"error": f"Unknown tool: {name}"}
+        return plan.plan(args)
+
+    if name == "transit_geocode":
+        return geocode.geocode(
+            args.get("query"),
+            types=args.get("types"),
+            modes=args.get("modes"),
+            near=args.get("near"),
+            near_bias=args.get("near_bias"),
+            num_results=args.get("num_results"),
+            language=args.get("language"),
+        )
+
+    if name == "transit_departures":
+        return boards.departures(
+            args.get("stop_id"),
+            count=args.get("count"),
+            time=args.get("time"),
+            window=args.get("window"),
+            timezone=args.get("timezone"),
+            endpoint_timezone=args.get("endpoint_timezone"),
+        )
+
+    if name == "transit_nearby_stops":
+        return geocode.nearby_stops(args.get("lat"), args.get("lon"), args.get("radius"))
+
+    if name == "transit_reverse_geocode":
+        return geocode.reverse_geocode(
+            args.get("lat"),
+            args.get("lon"),
+            types=args.get("types"),
+            num_results=args.get("num_results"),
+        )
+
+    if name == "transit_trip":
+        return boards.trip(args.get("trip_id"))
+
+    if name == "transit_health":
+        return http.api_get("/api/v1/health")
+
+    if name == "transit_reachable":
+        return onetomany.reachable(
+            args.get("lat"),
+            args.get("lon"),
+            max_time_min=args.get("max_time_min"),
+            time=args.get("time"),
+            arrive_by=args.get("arrive_by"),
+            timezone=args.get("timezone"),
+            endpoint_timezone=args.get("endpoint_timezone"),
+        )
+
+    if name == "transit_refresh":
+        return http.api_get(
+            "/api/v6/refresh-itinerary",
+            {"itineraryId": _required_id(args.get("itinerary_id"), "itinerary_id")},
+        )
+
+    if name == "transit_rentals":
+        lat = geocode.validate_latitude(args.get("lat"), argument="lat")
+        lon = geocode.validate_longitude(args.get("lon"), argument="lon")
+        radius = args.get("radius")
+        if radius is None:
+            radius = 1000
+        return http.api_get("/api/v1/rentals", {"point": f"{lat},{lon}", "radius": radius})
+
+    if name == "transit_one_to_many":
+        # §4.12.2 publishes `mode` as optional with default WALK. Forward the
+        # keyword only when the caller supplied it, so an omitted key leaves the
+        # argument slot unfilled and the accepted core applies its single WALK
+        # default. A present value - including JSON null - is forwarded exactly
+        # and stays the core's unknown_mode rejection. Never coalesce to WALK
+        # here: that would invent a second default and accept an explicit null.
+        supplied = {"mode": args["mode"]} if "mode" in args else {}
+        return onetomany.one_to_many(
+            args.get("from_lat"),
+            args.get("from_lon"),
+            args.get("destinations"),
+            max_sec=args.get("max_sec"),
+            arrive_by=args.get("arrive_by"),
+            **supplied,
+        )
+
+    if name == "transit_one_to_many_transit":
+        return onetomany.one_to_many_transit(
+            args.get("from_lat"),
+            args.get("from_lon"),
+            args.get("destinations"),
+            time=args.get("time"),
+            arrive_by=args.get("arrive_by"),
+            max_transfers=args.get("max_transfers"),
+            transit_modes=args.get("transit_modes"),
+            max_access_walk_minutes=args.get("max_access_walk_minutes"),
+            max_egress_walk_minutes=args.get("max_egress_walk_minutes"),
+            max_travel_minutes=args.get("max_travel_minutes"),
+            timezone=args.get("timezone"),
+            endpoint_timezone=args.get("endpoint_timezone"),
+        )
+
+    if name == "transit_map_trips":
+        return boards.map_trips(
+            args.get("min_lat"),
+            args.get("min_lon"),
+            args.get("max_lat"),
+            args.get("max_lon"),
+            args.get("start_time"),
+            args.get("end_time"),
+            zoom=args.get("zoom"),
+            timezone=args.get("timezone"),
+        )
+
+    return _unknown_tool(name)
+
 
 # ── MCP JSON-RPC loop ───────────────────────────────────────────────
 
@@ -528,9 +808,8 @@ def main():
                 continue
             try:
                 result = handle_call(params["name"], params.get("arguments", {}))
-                is_err = isinstance(result, dict) and ("error" in result or "transport_error" in result)
                 payload = {"content": [{"type":"text","text":json.dumps(result,indent=2)}]}
-                if is_err:
+                if errors.is_error_result(result):
                     payload["isError"] = True
                 send({"jsonrpc":"2.0","id":rid,"result":era_result(payload)})
             except Exception as e:                       # dispatch-level only (shouldn't happen)
