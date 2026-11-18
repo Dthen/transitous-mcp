@@ -1,16 +1,8 @@
 # Synthetic test fixtures
 
-Every file in this directory is a **constructed** example body, written for this
-test suite against the pinned API shapes. None of them is a captured live
-response, a copy of a production response, or derived from one; the numbers in
-them exist to express the vectors the tests assert. Bodies are deliberately small
-and are read fresh per call by ``tests/fixture_support.py``.
-
-The table below is the manifest checked by
-``tests/test_fixtures_integrity.py``: one row per file, its kind (always
-``synthetic``), the SHA-256 of the file's bytes, and the test concern it serves.
-Synthetic bodies are named with a ``synthetic_`` prefix so no filename can be
-mistaken for a capture.
+Constructed API-shaped examples, not live captures or production copies.
+`test_fixtures_integrity.py` checks each file's name, synthetic label and hash
+against this manifest.
 
 | fixture | kind | content_sha256 | purpose |
 | --- | --- | --- | --- |
@@ -54,6 +46,4 @@ mistaken for a capture.
 | `synthetic_westbound_date_line.json` | synthetic | `d9b79f752acd02a5690f2439a78dba0ca198dab57cdf5c5ed314aa6fc1fdd997` | Auckland-Honolulu itinerary crossing the date line westbound |
 | `synthetic_window_error.json` | synthetic | `6627c5bb1ee2d24c179aaf28b626f34d88d5afc92bffeaaedd531447041dad3f` | two 400 bodies carrying the timetable-window interval, one per clock form |
 
-Total: 39 files, 186740 bytes (182.4 KiB) of JSON. Bodies are plain JSON: they are far
-below any size that would justify archive storage, so they are stored verbatim
-and reviewed as text.
+Total: 39 JSON files, 186740 bytes.
