@@ -57,4 +57,5 @@ live service currently returns those shapes; live checks are out of scope.
 | `test_boards.py` | §4.9–§4.11 departures, trip and map segments |
 | `test_geocode_stops.py` | §4.7–§4.8 match identity, filters, nearby stops |
 | `test_one_to_many.py` | §4.12 street, intermodal and reachable paths |
+| `test_backend_boundary.py` | the 13-operation backend, its error boundary, raw endpoints, shared mode vocabulary and import safety |
 | `test_tools_call_e2e.py` | the 13-tool JSON-RPC surface through a fake transport |

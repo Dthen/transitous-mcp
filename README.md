@@ -201,11 +201,27 @@ non-string `params.name` is JSON-RPC `-32602`, an absent method is `-32601`, and
 unexpected internal fault is `-32603`. A tool failure is a normal result whose text
 is the canonical error object and whose `isError` is `true`.
 
+## Application boundary
+
+`transit_core.backend` is the protocol-independent operation boundary. It exposes
+the 13 canonical operations (`plan`, `geocode`, `departures`, `nearby_stops`,
+`reverse_geocode`, `trip`, `health`, `reachable`, `refresh`, `rentals`,
+`one_to_many`, `one_to_many_transit`, `map_trips`) through
+`backend.run(operation, arguments)`, and it returns the same result and error
+objects the MCP surface returns. Only a classified `ToolError` is converted to the
+canonical error result; an unexpected programming failure propagates instead of
+being reported as a user-input or upstream fault. `server.py` translates the
+`transit_<operation>` tool names onto that inventory and keeps the JSON-RPC
+messages, the era envelope, `isError` and the tool registry; neither the backend
+nor the core imports `server`. `health`, `refresh` and `rentals` still return the
+decoded provider payload unchanged on success, with the canonical error object on
+failure. Importing `server` or `transit_core` has no side effect: stdin is
+reconfigured only when the stdio loop starts.
+
 ## Usage
 
 Use `/usr/bin/python3` for the deterministic production invocation (Python 3.10+).
-The pre-cutover live gateway entry currently uses bare `python3`; the
-owner-controlled cutover pins the explicit system interpreter:
+That explicit system interpreter is the configured command:
 
 ```yaml
 mcp_servers:
@@ -222,7 +238,11 @@ installation or MCP framework is required.
 
 The server reports application version `3.0.0`, a breaking application contract:
 tool names and the MCP protocol are unchanged, the result, time and continuation
-contracts are not. The rollback anchor is commit
+contracts are not. That version has one source, `transit_core.APPLICATION_VERSION`;
+`server.py` reads it into `serverInfo` and `transit_core.__version__` is an alias.
+The previously internal core version `0.1.0` is reconciled to `3.0.0` in this
+unreleased tree — the application contract itself is unchanged and not bumped.
+The rollback anchor is commit
 `4a247f2871e23c013b20e6421d8ff834b82bba11` (version 2.1.0 with its committed
 `golden/transitous.tools.json`); restoring that commit's `server.py`, `golden/`,
 `README.md` and removing `transit_core/` and the added `tests/` files returns the

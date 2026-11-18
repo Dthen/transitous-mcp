@@ -24,7 +24,7 @@ error shape from :mod:`transit_core.errors`.
 
 import math
 
-from . import durations, errors, http, places, timeparse, timezones
+from . import durations, errors, http, modes, places, timeparse, timezones
 
 MAX_DESTINATIONS = 50
 DEFAULT_MAX_SECONDS = 3600
@@ -37,20 +37,12 @@ DEFAULT_TRANSIT_MODES = ("TRANSIT",)
 
 #: The pinned ``Mode`` members that denote transit service (§4.4.1), including the
 #: deprecated aliases the provider still understands. This is the **request**
-#: vocabulary; :data:`transit_core.durations.TRANSIT_MODES` is the response table.
-ACCEPTED_TRANSIT_MODES = frozenset(
-    {
-        "TRANSIT", "TRAM", "SUBWAY", "METRO", "BUS", "COACH", "RAIL",
-        "HIGHSPEED_RAIL", "LONG_DISTANCE", "NIGHT_RAIL", "REGIONAL_FAST_RAIL",
-        "REGIONAL_RAIL", "SUBURBAN", "FUNICULAR", "AERIAL_LIFT", "AREAL_LIFT",
-        "CABLE_CAR", "FERRY", "AIRPLANE", "OTHER", "ODM", "RIDE_SHARING", "FLEX",
-    }
-)
+#: vocabulary, owned by :mod:`transit_core.modes`;
+#: :data:`transit_core.durations.TRANSIT_MODES` is the response table.
+ACCEPTED_TRANSIT_MODES = modes.TRANSIT_REQUEST_MODES
 
 #: Street modes the transit-mode argument must reject with ``street_mode_not_transit``.
-STREET_REQUEST_MODES = frozenset(
-    {"WALK", "BIKE", "RENTAL", "CAR", "HGV", "CAR_PARKING", "CAR_DROPOFF"}
-)
+STREET_REQUEST_MODES = modes.REJECTED_STREET_MODES
 
 
 # ── local helpers ───────────────────────────────────────────────────
@@ -175,11 +167,11 @@ def _request_modes(value):
         # http.encode_params drops an empty list, so an empty request would silently
         # become the default TRANSIT query. Reject instead of changing the meaning.
         _fail_value("transit_modes", "transit_modes must not be empty")
-    modes = list(value)
-    for mode in modes:
+    selected = list(value)
+    for mode in selected:
         if not isinstance(mode, str):
             _fail_value("transit_modes", "every transit mode must be a string", mode)
-        if mode.startswith("DEBUG_") or mode in STREET_REQUEST_MODES:
+        if mode.startswith(modes.DEBUG_MODE_PREFIX) or mode in STREET_REQUEST_MODES:
             errors.fail(
                 errors.STREET_MODE_NOT_TRANSIT,
                 f"{mode!r} is a street mode, not a transit mode",
@@ -191,7 +183,7 @@ def _request_modes(value):
                 f"unknown transit mode {mode!r}",
                 {"argument": "transit_modes", "value": mode},
             )
-    return modes
+    return selected
 
 
 def _one_role(arrive_by):

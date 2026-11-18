@@ -2,10 +2,15 @@
 """Transitous MCP server — free public transit routing via the Transitous (MOTIS) API.
 
 This file is a thin adapter: the stateless JSON-RPC loop, the era envelope and the
-tool registry live here, and every journey rule lives in :mod:`transit_core`
-(request assembly, time and zone authority, error taxonomy, HTTP boundary,
-itinerary/board/one-to-many mapping). Standard library only; no MCP framework, no
-runtime dependency and no test-only branch.
+tool registry live here, and every operation — including the 13-operation
+protocol-independent boundary the MCP tool names translate onto — lives in
+:mod:`transit_core` (request assembly, time and zone authority, error taxonomy,
+HTTP boundary, itinerary/board/one-to-many mapping). Standard library only; no MCP
+framework, no runtime dependency and no test-only branch.
+
+Importing this module has no side effect: standard streams are reconfigured only
+when the executable loop starts in :func:`main`, and no request or server loop is
+started at import time.
 
 ``transit_refresh``, ``transit_rentals`` and ``transit_health`` are the only tools
 that keep returning raw provider payloads. Every other tool returns the canonical
@@ -15,10 +20,10 @@ envelope of ``transit_core.errors``.
 import json
 import sys
 
-from transit_core import boards, errors, geocode, http, onetomany, plan
+from transit_core import APPLICATION_VERSION, backend, errors, geocode, modes
 
 ERA_VERSION = "2026-07-28"
-SERVER_INFO = {"name": "transitous-mcp", "version": "3.0.0"}   # breaking application contract
+SERVER_INFO = {"name": "transitous-mcp", "version": APPLICATION_VERSION}
 ERA_RESULT_FIELDS = {"resultType": "complete", "ttlMs": 0, "cacheScope": "private"}
 RESULT_META = {"io.modelcontextprotocol/serverInfo": SERVER_INFO}
 
@@ -32,7 +37,7 @@ def era_result(payload):
 
 
 # The accepted mode sets come from the foundation, never a second copy.
-TRANSIT_MODES = tuple(sorted(plan.ACCEPTED_MODES))
+TRANSIT_MODES = tuple(sorted(modes.TRANSIT_REQUEST_MODES))
 GEOCODE_MODES = list(geocode.GEOCODE_MODES)
 MATCH_TYPES = list(geocode.MATCH_TYPES)
 
@@ -619,159 +624,33 @@ TOOLS = [
 # ── Tool dispatch ───────────────────────────────────────────────────
 
 
-def _bounded(value, limit=80):
-    text = value if isinstance(value, str) else repr(value)
-    return text if len(text) <= limit else text[: limit - 1] + "…"
-
-
-def _required_id(value, argument):
-    """A tool argument the raw endpoints need as a non-empty string."""
-    if not isinstance(value, str) or not value.strip():
-        errors.fail(
-            errors.VALUE_OUT_OF_RANGE,
-            f"{argument} must be a non-empty string",
-            {"argument": argument, "value": _bounded(value), "expected": "non-empty string"},
-        )
-    return value
-
-
 def _unknown_tool(name):
     """A closed inventory is a closed value set, so an unknown name is a value fault."""
     return errors.error_result(
         errors.VALUE_OUT_OF_RANGE,
         f"Unknown tool: {name}",
-        {"argument": "name", "value": _bounded(name), "accepted": [tool["name"] for tool in TOOLS]},
+        {
+            "argument": "name",
+            "value": backend.bounded_value(name),
+            "accepted": [tool["name"] for tool in TOOLS],
+        },
     )
+
+
+#: MCP tool name -> canonical operation name. The backend owns the operations and
+#: their complete argument mappings; this adapter only translates the name prefix
+#: and keeps the tool-level diagnostics.
+OPERATION_BY_TOOL = {f"transit_{operation}": operation for operation in backend.OPERATIONS}
 
 
 def handle_call(name, args):
     """Dispatch one ``tools/call`` and always return a canonical payload object."""
     if not isinstance(args, dict):
-        return errors.error_result(
-            errors.VALUE_OUT_OF_RANGE,
-            "tool arguments must be an object",
-            {"argument": "arguments", "value": _bounded(args), "expected": "object"},
-        )
-    try:
-        return _dispatch(name, args)
-    except errors.ToolError as exc:
-        return exc.to_result()
-
-
-def _dispatch(name, args):
-    """The thin adapter: one accepted callable per tool, no mapping logic here."""
-    if name == "transit_plan":
-        return plan.plan(args)
-
-    if name == "transit_geocode":
-        return geocode.geocode(
-            args.get("query"),
-            types=args.get("types"),
-            modes=args.get("modes"),
-            near=args.get("near"),
-            near_bias=args.get("near_bias"),
-            num_results=args.get("num_results"),
-            language=args.get("language"),
-        )
-
-    if name == "transit_departures":
-        return boards.departures(
-            args.get("stop_id"),
-            count=args.get("count"),
-            time=args.get("time"),
-            window=args.get("window"),
-            timezone=args.get("timezone"),
-            endpoint_timezone=args.get("endpoint_timezone"),
-        )
-
-    if name == "transit_nearby_stops":
-        return geocode.nearby_stops(args.get("lat"), args.get("lon"), args.get("radius"))
-
-    if name == "transit_reverse_geocode":
-        return geocode.reverse_geocode(
-            args.get("lat"),
-            args.get("lon"),
-            types=args.get("types"),
-            num_results=args.get("num_results"),
-        )
-
-    if name == "transit_trip":
-        return boards.trip(args.get("trip_id"))
-
-    if name == "transit_health":
-        return http.api_get("/api/v1/health")
-
-    if name == "transit_reachable":
-        return onetomany.reachable(
-            args.get("lat"),
-            args.get("lon"),
-            max_time_min=args.get("max_time_min"),
-            time=args.get("time"),
-            arrive_by=args.get("arrive_by"),
-            timezone=args.get("timezone"),
-            endpoint_timezone=args.get("endpoint_timezone"),
-        )
-
-    if name == "transit_refresh":
-        return http.api_get(
-            "/api/v6/refresh-itinerary",
-            {"itineraryId": _required_id(args.get("itinerary_id"), "itinerary_id")},
-        )
-
-    if name == "transit_rentals":
-        lat = geocode.validate_latitude(args.get("lat"), argument="lat")
-        lon = geocode.validate_longitude(args.get("lon"), argument="lon")
-        radius = args.get("radius")
-        if radius is None:
-            radius = 1000
-        return http.api_get("/api/v1/rentals", {"point": f"{lat},{lon}", "radius": radius})
-
-    if name == "transit_one_to_many":
-        # §4.12.2 publishes `mode` as optional with default WALK. Forward the
-        # keyword only when the caller supplied it, so an omitted key leaves the
-        # argument slot unfilled and the accepted core applies its single WALK
-        # default. A present value - including JSON null - is forwarded exactly
-        # and stays the core's unknown_mode rejection. Never coalesce to WALK
-        # here: that would invent a second default and accept an explicit null.
-        supplied = {"mode": args["mode"]} if "mode" in args else {}
-        return onetomany.one_to_many(
-            args.get("from_lat"),
-            args.get("from_lon"),
-            args.get("destinations"),
-            max_sec=args.get("max_sec"),
-            arrive_by=args.get("arrive_by"),
-            **supplied,
-        )
-
-    if name == "transit_one_to_many_transit":
-        return onetomany.one_to_many_transit(
-            args.get("from_lat"),
-            args.get("from_lon"),
-            args.get("destinations"),
-            time=args.get("time"),
-            arrive_by=args.get("arrive_by"),
-            max_transfers=args.get("max_transfers"),
-            transit_modes=args.get("transit_modes"),
-            max_access_walk_minutes=args.get("max_access_walk_minutes"),
-            max_egress_walk_minutes=args.get("max_egress_walk_minutes"),
-            max_travel_minutes=args.get("max_travel_minutes"),
-            timezone=args.get("timezone"),
-            endpoint_timezone=args.get("endpoint_timezone"),
-        )
-
-    if name == "transit_map_trips":
-        return boards.map_trips(
-            args.get("min_lat"),
-            args.get("min_lon"),
-            args.get("max_lat"),
-            args.get("max_lon"),
-            args.get("start_time"),
-            args.get("end_time"),
-            zoom=args.get("zoom"),
-            timezone=args.get("timezone"),
-        )
-
-    return _unknown_tool(name)
+        return backend.arguments_error(args)
+    operation = OPERATION_BY_TOOL.get(name) if isinstance(name, str) else None
+    if operation is None:
+        return _unknown_tool(name)
+    return backend.run(operation, args)
 
 
 # ── MCP JSON-RPC loop ───────────────────────────────────────────────
@@ -780,11 +659,14 @@ def send(resp):
     sys.stdout.write(json.dumps(resp) + "\n")
     sys.stdout.flush()
 
-if hasattr(sys.stdin, "reconfigure"):
-    sys.stdin.reconfigure(errors="replace")
-
 def main():
-    for line in sys.stdin:
+    # The production loop reconfigures stdin for malformed bytes only when it
+    # starts. Importing this module (or the application layer) must not read,
+    # write or reconfigure a stream, so a text-only or None stream is safe here.
+    stdin = sys.stdin
+    if hasattr(stdin, "reconfigure"):
+        stdin.reconfigure(errors="replace")
+    for line in stdin:
         line = line.strip()
         if not line: continue
         try: req = json.loads(line)

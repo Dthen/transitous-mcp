@@ -58,7 +58,7 @@ Decisions the specification left to the implementation (pinned by tests):
 import math
 from typing import NoReturn
 
-from . import errors, http, timezones
+from . import errors, http, modes, timezones
 
 #: The three endpoint paths this module owns.
 GEOCODE_PATH = "/api/v1/geocode"
@@ -69,19 +69,14 @@ MAP_STOPS_PATH = "/api/v6/map/stops"
 #: contradiction rather than an unknown-but-live type.
 MATCH_TYPES = ("ADDRESS", "PLACE", "STOP")
 
-#: §4.4.1 accepted transit modes, in the specification's order. Sent in the
-#: caller's order, never sorted.
-GEOCODE_MODES = (
-    "TRANSIT", "TRAM", "SUBWAY", "METRO", "BUS", "COACH", "RAIL", "HIGHSPEED_RAIL",
-    "LONG_DISTANCE", "NIGHT_RAIL", "REGIONAL_FAST_RAIL", "REGIONAL_RAIL", "SUBURBAN",
-    "FUNICULAR", "AERIAL_LIFT", "AREAL_LIFT", "CABLE_CAR", "FERRY", "AIRPLANE",
-    "OTHER", "ODM", "RIDE_SHARING", "FLEX",
-)
+#: §4.4.1 accepted transit modes, in the specification's order, owned by
+#: :mod:`transit_core.modes`. Sent in the caller's order, never sorted.
+GEOCODE_MODES = modes.TRANSIT_REQUEST_MODE_ORDER
 
 #: §4.4.1 street modes: never a valid filter for a stop search.
-STREET_MODES = ("WALK", "BIKE", "RENTAL", "CAR", "HGV", "CAR_PARKING", "CAR_DROPOFF")
+STREET_MODES = modes.REJECTED_STREET_MODE_ORDER
 
-DEBUG_MODE_PREFIX = "DEBUG_"
+DEBUG_MODE_PREFIX = modes.DEBUG_MODE_PREFIX
 
 DEFAULT_NUM_RESULTS = 10
 MIN_NUM_RESULTS = 1

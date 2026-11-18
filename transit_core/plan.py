@@ -61,7 +61,7 @@ from dataclasses import dataclass, field, replace
 from datetime import datetime
 from typing import Optional
 
-from . import durations, errors, http, places, rendering, timeparse, timezones
+from . import durations, errors, http, modes, places, rendering, timeparse, timezones
 
 UTC = timezones.UTC
 
@@ -96,23 +96,15 @@ INTEGER_BOUNDS = {
 # ── §4.4.1 modes ────────────────────────────────────────────────────
 
 #: The pinned ``Mode`` enum members that denote transit service. This is the
-#: **request** enum; response classification is ``durations.TRANSIT_MODES``,
-#: which owns the street/dummy-walk decision and the deprecated aliases.
-ACCEPTED_MODES = frozenset(
-    {
-        "TRANSIT", "TRAM", "SUBWAY", "METRO", "BUS", "COACH", "RAIL",
-        "HIGHSPEED_RAIL", "LONG_DISTANCE", "NIGHT_RAIL", "REGIONAL_FAST_RAIL",
-        "REGIONAL_RAIL", "SUBURBAN", "FUNICULAR", "AERIAL_LIFT", "AREAL_LIFT",
-        "CABLE_CAR", "FERRY", "AIRPLANE", "OTHER", "ODM", "RIDE_SHARING", "FLEX",
-    }
-)
+#: **request** enum, owned by :mod:`transit_core.modes`; response classification is
+#: ``durations.TRANSIT_MODES``, which owns the street/dummy-walk decision and the
+#: deprecated aliases.
+ACCEPTED_MODES = modes.TRANSIT_REQUEST_MODES
 
 #: Street modes the caller may not ask a transit plan for (§4.4.1).
-REJECTED_STREET_MODES = frozenset(
-    {"WALK", "BIKE", "RENTAL", "CAR", "HGV", "CAR_PARKING", "CAR_DROPOFF"}
-)
+REJECTED_STREET_MODES = modes.REJECTED_STREET_MODES
 
-DEBUG_MODE_PREFIX = "DEBUG_"
+DEBUG_MODE_PREFIX = modes.DEBUG_MODE_PREFIX
 
 # ── bounds on the continuation payload (§4.6.1) ─────────────────────
 

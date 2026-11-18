@@ -1344,6 +1344,55 @@ def test_raw_payload_tools_still_reject_out_of_range_coordinates(tmp_path):
     assert_no_unexpected(session)
 
 
+@pytest.mark.parametrize(
+    "radius",
+    [
+        pytest.param("not-a-number", id="string"),
+        pytest.param("1000", id="numeric-string"),
+        pytest.param(12.5, id="fractional"),
+        pytest.param(12.0, id="whole-float"),
+        pytest.param(True, id="true"),
+        pytest.param(False, id="false"),
+        pytest.param([1000], id="list"),
+        pytest.param({"metres": 1000}, id="object"),
+    ],
+)
+def test_rentals_rejects_a_non_integer_radius_before_any_request(tmp_path, radius):
+    # The MCP schema already says integer; the adapter must not forward a value
+    # the endpoint cannot mean. A rejected radius costs no request at all.
+    with Session(tmp_path, [], "rentals_radius") as session:
+        payload = tool_error(
+            session.call(
+                "transit_rentals",
+                {"lat": 55.45, "lon": -4.62, "radius": radius},
+                rid=2,
+            )
+        )
+    assert payload["outcome"] == "invalid_input"
+    assert payload["error_type"] == "value_out_of_range"
+    assert payload["error_details"]["argument"] == "radius"
+    assert session.log["urls"] == []
+    assert_no_unexpected(session)
+
+
+def test_rentals_forwards_an_integer_beyond_the_nearby_stops_window(tmp_path):
+    # transit_rentals publishes no 1..5000 bound (that window belongs only to
+    # transit_nearby_stops), so a valid integer is sent verbatim rather than
+    # clamped or rejected by an invented limit.
+    body = [{"synthetic": True, "lat": 55.45, "lon": -4.62}]
+    with Session(tmp_path, [route("/api/v1/rentals", body)], "rentals_wide") as session:
+        payload = tool_payload(
+            session.call(
+                "transit_rentals",
+                {"lat": 55.45, "lon": -4.62, "radius": 40000},
+                rid=2,
+            )
+        )
+    assert payload == body
+    assert one_value(session.log["urls"][0], "radius") == "40000"
+    assert_no_unexpected(session)
+
+
 def no_envelope(payload):
     if not isinstance(payload, dict):
         return True  # a raw array payload cannot be the canonical envelope
