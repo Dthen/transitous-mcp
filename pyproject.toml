@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "transitous-mcp"
+dynamic = ["version"]
+description = "Public transit routing for people, scripts and agents: a native CLI and an MCP server over one shared backend"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "0BSD"
+license-files = ["LICENSE"]
+authors = [{ name = "Transitous contributors" }]
+keywords = ["transit", "public-transport", "routing", "mcp", "cli"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Utilities",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10"]
+
+[project.scripts]
+transitous = "transitous_cli.cli:main"
+transitous-mcp = "transitous_mcp.server:main"
+
+[tool.setuptools]
+packages = ["transit_core", "transitous_cli", "transitous_mcp"]
+include-package-data = false
+
+[tool.setuptools.dynamic]
+version = { attr = "transit_core.APPLICATION_VERSION" }

@@ -38,6 +38,177 @@ Ten of the thirteen tools return one canonical envelope. `transit_refresh`,
 `transit_rentals` and `transit_health` are the only exceptions: their descriptions
 say so, and their successful payload is the upstream response unchanged.
 
+## Native command line
+
+The same application backend is available as a standalone `transitous` command.
+It calls `transit_core.backend.run(operation, arguments)` directly — no MCP
+client, protocol session, server process or discovery step — and never imports
+the MCP adapter. Both interfaces ship in one distribution:
+
+| entry point | form |
+| --- | --- |
+| `transitous` | installed executable (`transitous_cli.cli:main`) |
+| `python -m transitous_cli` | module equivalent |
+| `transitous-mcp` | installed MCP server (`transitous_mcp.server:main`) |
+| `python -m transitous_mcp` | module equivalent |
+| `/usr/bin/python3 /path/to/repo/server.py` | unchanged source checkout launcher |
+
+Installing the package is optional for the MCP source-script workflow above: the
+root `server.py` remains a thin compatibility launcher over
+`transitous_mcp.server`.
+
+### Install
+
+Install a noneditable wheel in an isolated environment. It has no runtime
+dependency:
+
+```sh
+python3 -m venv ~/.local/venvs/transitous
+~/.local/venvs/transitous/bin/pip install --no-index --no-deps /absolute/path/to/transitous_mcp-3.0.0-py3-none-any.whl
+~/.local/venvs/transitous/bin/transitous --version
+~/.local/venvs/transitous/bin/transitous --help
+```
+
+`pipx install /absolute/path/to/transitous_mcp-3.0.0-py3-none-any.whl` is an
+optional way to put the executable on `PATH`. Building from source and installing
+development dependencies may contact the package index:
+
+```sh
+python3 -m pip install build
+python3 -m build
+python3 -m pip install --no-index --no-deps dist/transitous_mcp-3.0.0-py3-none-any.whl
+```
+
+The wheel is the offline runtime install; the source build and
+`tools/dev-requirements.txt` are development/network paths. The editable source
+pointer (`-e .[dev]`) is development-only and never needed at runtime.
+
+### Commands
+
+`T` and `Z` mean an unmodified time string and IANA zone string. Every optional
+argument is absent unless supplied; the CLI does not send `None`, empty lists or
+copies of domain defaults.
+
+| Command | Arguments |
+| --- | --- |
+| `plan` | `[--from-stop-id ID \| --from-lat LAT --from-lon LON] [--to-stop-id ID \| --to-lat LAT --to-lon LON] [--time T] [--arrive-by \| --no-arrive-by] [--timezone Z] [--origin-timezone Z] [--destination-timezone Z] [--max-transfers N] [--transit-mode MODE]... [--num-itineraries N] [--max-itineraries N] [--max-results N] [--search-window-seconds N] [--continuation FILE\|-] [--include-direct \| --no-include-direct] [--max-access-walk-minutes N] [--max-egress-walk-minutes N] [--min-transfer-minutes N]` |
+| `geocode` | `QUERY [--type KIND]... [--mode MODE]... [--near LAT,LON] [--near-bias NUMBER] [--num-results N] [--language TEXT]` |
+| `departures` | `STOP_ID [--count N] [--time T] [--window SECONDS] [--timezone Z] [--endpoint-timezone Z]` |
+| `nearby-stops` | `LAT LON [--radius METRES]` |
+| `reverse-geocode` | `LAT LON [--type KIND]... [--num-results N]` |
+| `trip` | `TRIP_ID` |
+| `health` | no operation arguments |
+| `reachable` | `LAT LON [--max-time-min N] [--time T] [--arrive-by \| --no-arrive-by] [--timezone Z] [--endpoint-timezone Z]` |
+| `refresh` | `ITINERARY_ID` |
+| `rentals` | `LAT LON [--radius METRES]` |
+| `one-to-many` | `--from LAT,LON --destination LAT,LON ... [--mode PROFILE] [--max-sec NUMBER] [--arrive-by \| --no-arrive-by]` |
+| `one-to-many-transit` | `--from LAT,LON --destination LAT,LON ... [--time T] [--arrive-by \| --no-arrive-by] [--max-transfers N] [--transit-mode MODE]... [--max-access-walk-minutes N] [--max-egress-walk-minutes N] [--max-travel-minutes N] [--timezone Z] [--endpoint-timezone Z]` |
+| `map-trips` | `--bbox MIN_LAT,MIN_LON,MAX_LAT,MAX_LON --start-time T --end-time T [--zoom N] [--timezone Z]` |
+
+Option names are exact: no abbreviations, no aliases, case-sensitive. Repeatable
+list options (`--type`, `--mode`, `--transit-mode`, `--destination`) append in
+caller order and are never split, sorted or deduplicated; `geocode --language
+"a,b"` is one string. Repeating a scalar or boolean uses the last supplied value.
+`--from LAT,LON`, `--destination LAT,LON`, `--near LAT,LON` and `--bbox` are the
+only comma grammars. Integers are signed base-10 tokens; coordinates, `--near-bias`
+and `--max-sec` are finite decimal/exponent numbers. A malformed number, tuple or
+bounding box is a CLI usage error before any request. Leading-dash values use the
+`=` spelling (`--from=-1.2,-4.6`, `--from-lon=-4.6`) or `--` before an opaque
+identifier (`trip -- '-opaque-id'`).
+
+In `plan`, endpoints are not parser-required because a continuation object supplies
+them; the core owns completeness, mixed-form (`mixed_endpoint_form`) and
+contradiction errors, and the existing 1..50 destination limit. One-to-many
+requires `--from` and at least one `--destination`; `map-trips` requires `--bbox`,
+`--start-time` and `--end-time`, as the table shows.
+
+### Output and exit status
+
+Human-readable output is the default, whether or not stdout is a TTY. `--json`
+selects exactly one JSON operation document, structurally equal to the backend
+result: no wrapper, added status or exit-code field. It may appear before the
+command or among its options; repetition is harmless. `--` ends option
+recognition, so a later `--json` is a literal operand, and `--time=--json` is a
+time value, not an output selector. `--help` and `--version` are always plain
+management text, even with `--json`.
+
+| status | meaning |
+| --- | --- |
+| 0 | completed answer (`ok`, `no_routes`, empty data, raw payload not marked as an error), or help/version |
+| 2 | CLI syntax/numeric/input-file error, or a backend error marked by the shared classifier with outcome `invalid_input` |
+| 1 | every other marked backend error, a CLI internal error, or an output failure |
+| 130 | keyboard interruption |
+
+A marked backend error is a dict with a truthy `error` member. A raw `outcome`
+string without that marker is not a failure, and a raw error dict with an absent or
+unrecognised outcome is status 1. `health`, `refresh` and `rentals` remain decoded
+raw payloads on success; human mode prints the whole payload as pretty JSON unless
+it is marked as an error.
+
+Human output is intentionally lossy and never a second routing engine: plan prints
+endpoints, the effective search frame, query window/counts, active constraints,
+truncation with its reason and dropped count, the no-routes reason when present,
+and every returned itinerary, direct street-only alternative and leg in backend
+order, with canonical timestamp display values (zone/offset provenance visible) and
+the statement that it is a bounded search. Other commands print every returned row
+in order; optional metadata not projected is available with `--json`. Backend
+warnings are printed to stderr in order and are never deduplicated.
+
+CLI-local failures (usage, continuation input, unexpected internal fault,
+interruption) are not disguised as upstream errors. In JSON mode, before any
+stdout document is written, the single diagnostic is:
+
+```json
+{"error":"Human-readable bounded message","outcome":"cli_error","error_type":"usage","error_details":{}}
+```
+
+`error_type` is `usage`, `input_file`, `internal_error` or `interrupted`. In human
+mode the same diagnostic goes to stderr and stdout stays empty. Core-classified
+backend errors keep their original shape and are written unchanged.
+
+Stream ownership is explicit. After any stdout write attempt, a broken pipe,
+failed flush or interruption returns 1 (or 130 for interruption) without appending
+a replacement document. A missing stdout or an unusable/closed stdout descriptor is
+an output failure: status 1, no traceback, and no shutdown error. When stderr is
+missing or broken, the diagnostic is omitted but the caller's classified status is
+preserved (`2` for usage/input, `1` for a backend error, `0` for success) — a broken
+diagnostic stream never becomes a different exit status. An unreadable or closed
+continuation stdin (`--continuation -`) is a local `input_file` error (status 2)
+before any backend call, exactly like an unreadable continuation file. A real
+interruption — including one delivered while a stderr diagnostic or warning is being
+written — returns 130 with no traceback and no replacement document.
+
+### Time
+
+No CLI-side time resolution, host-zone fallback or date parsing happens. Explicit
+instants, naive local clocks, date-only strings and omission reach the core
+unchanged; see [Time semantics](#time-semantics) for the direction-dependent
+endpoint frame. `map-trips` needs `--timezone` only to read a naive window, not for
+offset-bearing instants.
+
+### Continuation
+
+`plan --continuation FILE` accepts one previously returned `continuation.previous`
+or `continuation.next` object (`{cursor, query}`), or `-` to read stdin once to EOF.
+The file must be UTF-8 JSON without a BOM, duplicate keys or NaN/Infinity, and the
+decoded document must be one object; anything else is a local `input_file` error
+(status 2) before any HTTP request. The whole object is forwarded unchanged: the
+core alone validates the frozen query, and a full result object or `{previous,
+next}` is the core's canonical `invalid_input` error. Ordinary plan flags supplied
+alongside the object are forwarded too; a contradiction is named by the core as
+`cursor_without_identical_query`.
+
+```sh
+transitous plan --from-stop-id "$FROM_STOP" --to-stop-id "$TO_STOP" \
+  --time 2026-10-27T09:00:00Z --json > result.json
+# First check the call succeeded and continuation.next is non-null.
+jq '.continuation.next' result.json > next.json
+transitous plan --continuation next.json --json
+```
+
+The fixed time above illustrates syntax; it is not a promise of live timetable
+coverage.
+
 ## Result contract
 
 `transit_core` owns every journey rule; `server.py` is a thin adapter over it.
@@ -232,16 +403,21 @@ mcp_servers:
 ```
 
 The server also works with other newline-delimited stdio MCP clients. No package
-installation or MCP framework is required.
+installation or MCP framework is required. An installed environment exposes the
+same adapter as `transitous-mcp` or `python -m transitous_mcp`; switching an
+existing Hermes configuration to that executable is a separate operator decision,
+and the root-script configuration above keeps working unchanged.
 
 ## Version and rollback
 
 The server reports application version `3.0.0`, a breaking application contract:
 tool names and the MCP protocol are unchanged, the result, time and continuation
 contracts are not. That version has one source, `transit_core.APPLICATION_VERSION`;
-`server.py` reads it into `serverInfo` and `transit_core.__version__` is an alias.
-The previously internal core version `0.1.0` is reconciled to `3.0.0` in this
-unreleased tree — the application contract itself is unchanged and not bumped.
+`server.py` (and `transitous_mcp.server`) reads it into `serverInfo`, the CLI and
+installed distribution metadata read the same literal, and
+`transit_core.__version__` is an alias. The previously internal core version
+`0.1.0` is reconciled to `3.0.0` in this unreleased tree — the application
+contract itself is unchanged and not bumped.
 The rollback anchor is commit
 `4a247f2871e23c013b20e6421d8ff834b82bba11` (version 2.1.0 with its committed
 `golden/transitous.tools.json`); restoring that commit's `server.py`, `golden/`,
@@ -262,9 +438,12 @@ python3 -m venv .venv-dev
 .venv-dev/bin/python -m pytest -q -p no:cacheprovider
 ```
 
-`tools/dev-requirements.txt` pins `pytest>=8,<10`; `server.py` and
-`transit_core/` never import pytest. Creating the virtualenv and installing
-pytest may need the package index; running the suite itself needs no network.
+`tools/dev-requirements.txt` is a reference shim for `-e .[dev]` and must be run
+from the project root; the one authoritative development dependency declaration is
+`[project.optional-dependencies].dev = ["pytest>=8,<10"]` in `pyproject.toml`.
+`server.py`, `transitous_mcp/`, `transitous_cli/` and `transit_core/` never import
+pytest. Creating the virtualenv and installing pytest may need the package index;
+running the suite itself needs no network.
 
 The regression suite is self-contained: every API-shaped body it reads is a
 small constructed JSON file under `tests/fixtures/`, labelled `synthetic` in that

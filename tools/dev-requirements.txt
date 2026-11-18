@@ -1,1 +1,6 @@
-pytest>=8,<10
+# Reference shim: the one authoritative development dependency declaration is
+# `[project.optional-dependencies].dev` in pyproject.toml.
+#
+# Run from the project root:
+#   python -m pip install -r tools/dev-requirements.txt
+-e .[dev]

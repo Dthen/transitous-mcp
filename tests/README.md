@@ -20,7 +20,9 @@ themselves are offline:
 .venv-dev/bin/python -m pytest -q -p no:cacheprovider
 ```
 
-`tools/dev-requirements.txt` pins the only test dependency. The suite does not
+`tools/dev-requirements.txt` is a reference shim for `-e .[dev]` and must be run
+from the project root; the authoritative declaration is
+`[project.optional-dependencies].dev` in `pyproject.toml`. The suite does not
 read `TRANSITOUS_TEST_FIXTURES` and does not require `PYTHONPATH` or
 `PYTHONHOME`; the interpreter still honours those variables if they are set, but
 no value is needed for a green run. It also needs no setup or data-generation
@@ -59,3 +61,15 @@ live service currently returns those shapes; live checks are out of scope.
 | `test_one_to_many.py` | §4.12 street, intermodal and reachable paths |
 | `test_backend_boundary.py` | the 13-operation backend, its error boundary, raw endpoints, shared mode vocabulary and import safety |
 | `test_tools_call_e2e.py` | the 13-tool JSON-RPC surface through a fake transport |
+| `test_cli.py` | the native CLI declaration (13 commands / 80 schema fields), parsing and typed conversion, continuation input rules, exit classification, JSON/human output ownership and every renderer |
+| `test_cli_artifacts.py` | process-byte checks of the module form outside the checkout: management text, usage/numeric/input-file diagnostics, missing stdout, closed stdout/stderr descriptors after startup (status preserved, no shutdown 120), closed/unreadable continuation stdin (`input_file` 2), broken pipe, non-UTF-8 stdout, and real SIGINT before emission, during the stdout write, and during stderr diagnostics/warnings |
+
+The CLI tests replace only `transit_core.http.api_get` (the single GET boundary),
+so request assembly, mapping and classification stay the production ones. The
+subprocess checks run `python -m transitous_cli` from outside the checkout and
+assert actual stdout/stderr bytes and exit status; they use no production test
+switch. Installed wheel/sdist verification (console entry points, MCP discovery and
+golden registry, noneditable install in a clean venv) is a separate harness under
+`results/cli-implementation/installed_check.py`, not part of this source suite.
+No CLI case adds a fixture: inline bodies are labelled synthetic, and the existing
+`fixtures/` set is unchanged.

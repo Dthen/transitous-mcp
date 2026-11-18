@@ -1,0 +1,8 @@
+include LICENSE
+include README.md
+include server.py
+include test_stateless_era.py
+include tools/dev-requirements.txt
+include tools/golden_capture.py
+recursive-include golden *.json
+recursive-include tests *.py *.md *.json
