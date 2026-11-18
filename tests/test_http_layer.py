@@ -2,10 +2,9 @@
 
 Two defects live at this boundary and nowhere else: a repeated query key for an
 array parameter, and a failure taxonomy that a per-call-site fix would leave
-half-applied. Both are pinned here against the real body shapes.
+half-applied. Both are pinned here against the documented body shapes.
 """
 
-import gzip
 import io
 import json
 import socket
@@ -170,7 +169,7 @@ def test_request_carries_the_unchanged_user_agent():
 
 
 def test_api_get_returns_parsed_json_from_a_200_body():
-    body = fs.read_bytes("stop_metro_central.json")
+    body = fs.read_bytes("synthetic_stop_metro_central.json")
     seen = []
     data = http.api_get(
         "/api/v6/stop", {"stopId": "gb-great-britain_940GZZTWCST"},
@@ -186,7 +185,7 @@ def test_api_get_returns_parsed_json_from_a_200_body():
 
 
 def test_a_200_empty_itineraries_body_is_not_an_error():
-    body = fs.read_bytes("plan_empty_no_service.json")
+    body = fs.read_bytes("synthetic_plan_empty_no_service.json")
     data = http.api_get("/api/v6/plan", {"fromPlace": "x"}, transport=transport_returning(200, body))
     assert data["itineraries"] == []
 
@@ -226,7 +225,7 @@ def test_non_json_200_body_is_malformed_upstream():
 
 
 def test_the_recorded_naive_rejection_is_upstream_rejected_not_out_of_range():
-    body = fs.read_text("plan_glw_edi_naive_reject.json")
+    body = fs.read_text("synthetic_plan_glw_edi_naive_reject.json")
     with pytest.raises(errors.ToolError) as caught:
         http.api_get("/api/v6/plan", {}, transport=transport_returning(400, body))
     assert caught.value.outcome == errors.UPSTREAM_REJECTED
@@ -238,7 +237,7 @@ def test_the_recorded_naive_rejection_is_upstream_rejected_not_out_of_range():
 
 
 def test_window_predicate_parses_the_recorded_bracketed_interval():
-    entries = fs.load("window_error.json")["entries"]
+    entries = fs.load("synthetic_window_error.json")["entries"]
     for entry in entries:
         window = http.parse_timetable_window(entry["body"])
         assert window == {"start": "2026-09-20 00:00", "end": "2027-10-21 00:00"}, entry["label"]
@@ -264,7 +263,7 @@ def test_window_predicate_rejects_everything_but_the_exact_pattern(body):
 
 
 def test_a_window_400_becomes_out_of_range_with_the_interval_echoed():
-    body = fs.load("window_error.json")["entries"][0]["body"]
+    body = fs.load("synthetic_window_error.json")["entries"][0]["body"]
     with pytest.raises(errors.ToolError) as caught:
         http.api_get("/api/v6/plan", {"time": "2026-07-15T09:00:00"}, transport=transport_returning(400, body))
     exc = caught.value

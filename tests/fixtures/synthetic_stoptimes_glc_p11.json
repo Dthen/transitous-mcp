@@ -1,0 +1,24 @@
+{
+  "place": {
+    "name": "Glasgow Central",
+    "stopId": "gb-great-britain_9100GLGC",
+    "parentId": "gb-great-britain_910GGLGC",
+    "lat": 55.858,
+    "lon": -4.258,
+    "tz": "Europe/London",
+    "vertexType": "TRANSIT"
+  },
+  "stopTimes": [
+    { "realTime": false, "cancelled": false, "tripCancelled": false, "routeShortName": "1", "headsign": "Ayr", "mode": "REGIONAL_RAIL", "routeType": 2, "agencyName": "ScotRail", "tripId": "synthetic-glc-1", "place": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "tz": "Europe/London", "scheduledDeparture": "2026-10-27T09:05:00Z" } },
+    { "realTime": false, "cancelled": false, "tripCancelled": false, "routeShortName": "1", "headsign": "Ayr", "mode": "REGIONAL_RAIL", "routeType": 2, "agencyName": "ScotRail", "tripId": "synthetic-glc-2", "place": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "tz": "Europe/London", "scheduledDeparture": "2026-10-27T09:20:00Z" } },
+    { "realTime": false, "cancelled": false, "tripCancelled": false, "routeShortName": "1", "headsign": "Ayr", "mode": "REGIONAL_RAIL", "routeType": 2, "agencyName": "ScotRail", "tripId": "synthetic-glc-3", "place": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "tz": "Europe/London", "scheduledDeparture": "2026-10-27T09:35:00Z" } },
+    { "realTime": false, "cancelled": false, "tripCancelled": false, "routeShortName": "1", "headsign": "Ayr", "mode": "REGIONAL_RAIL", "routeType": 2, "agencyName": "ScotRail", "tripId": "synthetic-glc-4", "place": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "tz": "Europe/London", "scheduledDeparture": "2026-10-27T09:50:00Z" } },
+    { "realTime": false, "cancelled": false, "tripCancelled": false, "routeShortName": "1", "headsign": "Ayr", "mode": "REGIONAL_RAIL", "routeType": 2, "agencyName": "ScotRail", "tripId": "synthetic-glc-5", "place": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "tz": "Europe/London", "scheduledDeparture": "2026-10-27T10:05:00Z" } },
+    { "realTime": false, "cancelled": false, "tripCancelled": false, "routeShortName": "1", "headsign": "Ayr", "mode": "REGIONAL_RAIL", "routeType": 2, "agencyName": "ScotRail", "tripId": "synthetic-glc-6", "place": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "tz": "Europe/London", "scheduledDeparture": "2026-10-27T10:20:00Z" } },
+    { "realTime": false, "cancelled": false, "tripCancelled": false, "routeShortName": "1", "headsign": "Ayr", "mode": "REGIONAL_RAIL", "routeType": 2, "agencyName": "ScotRail", "tripId": "synthetic-glc-7", "place": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "tz": "Europe/London", "scheduledDeparture": "2026-10-27T10:35:00Z" } },
+    { "realTime": false, "cancelled": false, "tripCancelled": false, "routeShortName": "1", "headsign": "Ayr", "mode": "REGIONAL_RAIL", "routeType": 2, "agencyName": "ScotRail", "tripId": "synthetic-glc-8", "place": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "tz": "Europe/London", "scheduledDeparture": "2026-10-27T10:50:00Z" } },
+    { "realTime": false, "cancelled": false, "tripCancelled": false, "routeShortName": "1", "headsign": "Ayr", "mode": "REGIONAL_RAIL", "routeType": 2, "agencyName": "ScotRail", "tripId": "synthetic-glc-9", "place": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "tz": "Europe/London", "scheduledDeparture": "2026-10-27T11:05:00Z" } },
+    { "realTime": false, "cancelled": false, "tripCancelled": false, "routeShortName": "1", "headsign": "Ayr", "mode": "REGIONAL_RAIL", "routeType": 2, "agencyName": "ScotRail", "tripId": "synthetic-glc-10", "place": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "tz": "Europe/London", "scheduledDeparture": "2026-10-27T11:20:00Z" } },
+    { "realTime": false, "cancelled": false, "tripCancelled": false, "routeShortName": "1", "headsign": "Ayr", "mode": "REGIONAL_RAIL", "routeType": 2, "agencyName": "ScotRail", "tripId": "synthetic-glc-11", "place": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "tz": "Europe/London", "scheduledDeparture": "2026-10-27T11:35:00Z" } }
+  ]
+}

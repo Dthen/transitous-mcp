@@ -1,0 +1,14 @@
+{
+  "entries": [
+    {
+      "label": "naive local clock in the loaded timetable window",
+      "status": 400,
+      "body": "{\"error\":\"query time 2026-07-15 09:00 is outside of loaded timetable window [2026-09-20 00:00, 2027-10-21 00:00[\"}"
+    },
+    {
+      "label": "offset-bearing instant rendered in UTC",
+      "status": 400,
+      "body": "{\"error\":\"query time 2026-07-15 08:00 is outside of loaded timetable window [2026-09-20 00:00, 2027-10-21 00:00[\"}"
+    }
+  ]
+}

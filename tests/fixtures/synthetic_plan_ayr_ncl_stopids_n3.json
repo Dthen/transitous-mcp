@@ -1,0 +1,47 @@
+{
+  "requestParameters": {},
+  "debugOutput": {},
+  "from": { "name": "gb-great-britain_910GAYRR", "stopId": "gb-great-britain_910GAYRR", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" },
+  "to": { "name": "gb-great-britain_910GNWCSTLE", "stopId": "gb-great-britain_910GNWCSTLE", "lat": 54.968338, "lon": -1.616046, "tz": "Europe/London" },
+  "direct": [],
+  "itineraries": [
+    {
+      "id": "synthetic-ayr-ncl-stopids-1",
+      "duration": 12540,
+      "startTime": "2026-10-27T09:00:00Z",
+      "endTime": "2026-10-27T12:29:00Z",
+      "transfers": 2,
+      "legs": [
+        { "mode": "REGIONAL_RAIL", "startTime": "2026-10-27T09:00:00Z", "endTime": "2026-10-27T10:00:00Z", "scheduled": true, "duration": 3600, "routeShortName": "1", "headsign": "Glasgow Central", "from": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "to": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "lat": 55.858, "lon": -4.258, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-stopids-1a", "precision": 6, "length": 40 } },
+        { "mode": "REGIONAL_RAIL", "startTime": "2026-10-27T10:20:00Z", "endTime": "2026-10-27T11:20:00Z", "scheduled": true, "duration": 3600, "routeShortName": "2", "headsign": "Carlisle", "from": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "lat": 55.858, "lon": -4.258, "tz": "Europe/London" }, "to": { "name": "Carlisle", "stopId": "gb-great-britain_9100CARLISL", "lat": 54.891, "lon": -2.933, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-stopids-1b", "precision": 6, "length": 60 } },
+        { "mode": "LONG_DISTANCE", "startTime": "2026-10-27T11:40:00Z", "endTime": "2026-10-27T12:29:00Z", "scheduled": true, "duration": 2940, "routeShortName": "XC", "headsign": "Newcastle", "from": { "name": "Carlisle", "stopId": "gb-great-britain_9100CARLISL", "lat": 54.891, "lon": -2.933, "tz": "Europe/London" }, "to": { "name": "Newcastle", "stopId": "gb-great-britain_9100NWCSTLE", "lat": 54.968338, "lon": -1.616046, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-stopids-1c", "precision": 6, "length": 80 } }
+      ]
+    },
+    {
+      "id": "synthetic-ayr-ncl-stopids-2",
+      "duration": 13000,
+      "startTime": "2026-10-27T09:10:00Z",
+      "endTime": "2026-10-27T12:46:40Z",
+      "transfers": 0,
+      "legs": [
+        { "mode": "WALK", "startTime": "2026-10-27T09:10:00Z", "endTime": "2026-10-27T09:15:00Z", "scheduled": true, "duration": 300, "from": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "to": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-stopids-2a", "precision": 6, "length": 1 } },
+        { "mode": "LONG_DISTANCE", "startTime": "2026-10-27T09:20:00Z", "endTime": "2026-10-27T11:50:00Z", "scheduled": true, "duration": 9000, "routeShortName": "XC", "headsign": "Newcastle", "from": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "to": { "name": "Newcastle", "stopId": "gb-great-britain_9100NWCSTLE", "lat": 54.968338, "lon": -1.616046, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-stopids-2b", "precision": 6, "length": 150 } },
+        { "mode": "WALK", "startTime": "2026-10-27T12:41:40Z", "endTime": "2026-10-27T12:46:40Z", "scheduled": true, "duration": 300, "from": { "name": "Newcastle", "stopId": "gb-great-britain_9100NWCSTLE", "lat": 54.968338, "lon": -1.616046, "tz": "Europe/London" }, "to": { "name": "Newcastle", "stopId": "gb-great-britain_9100NWCSTLE", "lat": 54.968338, "lon": -1.616046, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-stopids-2c", "precision": 6, "length": 1 } }
+      ]
+    },
+    {
+      "id": "synthetic-ayr-ncl-stopids-3",
+      "duration": 12900,
+      "startTime": "2026-10-27T08:30:00Z",
+      "endTime": "2026-10-27T12:05:00Z",
+      "transfers": 0,
+      "legs": [
+        { "mode": "WALK", "startTime": "2026-10-27T08:30:00Z", "endTime": "2026-10-27T08:34:00Z", "scheduled": true, "duration": 240, "from": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "to": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-stopids-3a", "precision": 6, "length": 1 } },
+        { "mode": "LONG_DISTANCE", "startTime": "2026-10-27T08:40:00Z", "endTime": "2026-10-27T12:00:00Z", "scheduled": true, "duration": 12000, "routeShortName": "XC", "headsign": "Newcastle", "from": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "to": { "name": "Newcastle", "stopId": "gb-great-britain_9100NWCSTLE", "lat": 54.968338, "lon": -1.616046, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-stopids-3b", "precision": 6, "length": 150 } },
+        { "mode": "WALK", "startTime": "2026-10-27T12:00:00Z", "endTime": "2026-10-27T12:05:00Z", "scheduled": true, "duration": 300, "from": { "name": "Newcastle", "stopId": "gb-great-britain_9100NWCSTLE", "lat": 54.968338, "lon": -1.616046, "tz": "Europe/London" }, "to": { "name": "Newcastle", "stopId": "gb-great-britain_9100NWCSTLE", "lat": 54.968338, "lon": -1.616046, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-stopids-3c", "precision": 6, "length": 1 } }
+      ]
+    }
+  ],
+  "previousPageCursor": "EARLIER|1793091600",
+  "nextPageCursor": "LATER|1793095560"
+}

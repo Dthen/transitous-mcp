@@ -40,7 +40,7 @@ def transport(body, calls):
 
 
 def stop_body(zone="Europe/London"):
-    body = fs.load("stop_metro_central.json")
+    body = fs.load("synthetic_stop_metro_central.json")
     if zone is None:
         body["place"].pop("tz", None)
     else:

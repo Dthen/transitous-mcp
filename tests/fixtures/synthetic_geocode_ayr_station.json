@@ -1,0 +1,29 @@
+[
+  {
+    "type": "STOP",
+    "name": "Ayr station",
+    "id": "gb-great-britain_6190123",
+    "lat": 55.45814,
+    "lon": -4.6258755,
+    "tokens": ["ayr", "station"],
+    "areas": ["South Ayrshire"],
+    "score": 0.92,
+    "country": "GB",
+    "tz": "Europe/London",
+    "modes": ["REGIONAL_RAIL"],
+    "importance": 0.7
+  },
+  {
+    "type": "ADDRESS",
+    "name": "Ayr station, Station Road",
+    "id": "",
+    "lat": 55.4583,
+    "lon": -4.6261,
+    "tokens": ["ayr", "station", "road"],
+    "areas": ["South Ayrshire"],
+    "score": 0.7,
+    "country": "GB",
+    "street": "Station Road",
+    "houseNumber": "1"
+  }
+]

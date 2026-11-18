@@ -1,7 +1,7 @@
 """Departure boards, trip itineraries and map trip segments (§4.9–4.11, §4.13).
 
-Every assertion is driven by a real corpus body (read-only, external scratch) or a
-small in-memory negative where the corpus has no such shape. The transport double
+Every assertion is driven by a checked-in constructed fixture or a
+small in-memory negative where the fixtures have no such shape. The transport double
 records the assembled URL, so the request itself is inspected — not just the
 mapping of a payload handed to the mapper directly.
 
@@ -99,11 +99,11 @@ def test_boards_module_lives_in_the_checkout():
     assert path.startswith(os.path.realpath(fs.REPO_ROOT) + os.sep)
 
 
-# ── departures: the recorded boards ─────────────────────────────────
+# ── departures: the constructed boards ──────────────────────────────
 
 
 def test_scheduled_only_ayr_board_is_not_realtime_and_scheduled_is_null():
-    data = fs.load("stoptimes_ayr_p3.json")
+    data = fs.load("synthetic_stoptimes_ayr_p3.json")
     transport = FixtureTransport({"/api/v6/stoptimes": data})
 
     result = boards.departures(
@@ -135,7 +135,7 @@ def test_scheduled_only_ayr_board_is_not_realtime_and_scheduled_is_null():
 
 
 def test_realtime_board_keeps_scheduled_null_and_uses_only_the_supplied_departure():
-    data = fs.load("stoptimes_ber_hbf.json.gz")
+    data = fs.load("synthetic_stoptimes_ber_hbf.json")
     transport = FixtureTransport({"/api/v6/stoptimes": data})
 
     result = boards.departures(
@@ -168,13 +168,13 @@ def test_realtime_board_keeps_scheduled_null_and_uses_only_the_supplied_departur
 def test_realtime_board_without_a_supplied_departure_reports_unknown_expected_and_delay():
     """R2 lock: realTime true with only a scheduled instant.
 
-    Labelled synthetic row: every corpus row that is realtime carries both
+    Labelled synthetic row: every fixture row that is realtime carries both
     instants, so the "not inferred, not zero" branch was asserted nowhere. The
     expected departure must not fall back to the scheduled one, and a one-sided
     difference is null rather than zero.
     """
 
-    data = june(fs.load("stoptimes_ber_hbf.json.gz"))
+    data = june(fs.load("synthetic_stoptimes_ber_hbf.json"))
     row = data["stopTimes"][0]
     row["realTime"] = True
     row["place"].pop("departure", None)          # synthetic: scheduled, never expected
@@ -199,6 +199,39 @@ def test_realtime_board_without_a_supplied_departure_reports_unknown_expected_an
     assert departure["scheduled_departure"]["zone"] == "Europe/Berlin"
 
 
+def test_departure_count_truncates_a_larger_body_in_upstream_order():
+    """The board keeps the first `count` upstream rows, in the order supplied."""
+    from datetime import datetime
+
+    data = fs.load("synthetic_stoptimes_ayr_p3.json")
+    assert len(data["stopTimes"]) > 5
+    # Deliberately non-chronological: a sort-before-cap regression must not
+    # look equivalent to retaining the provider's first five rows.
+    data["stopTimes"][0], data["stopTimes"][7] = data["stopTimes"][7], data["stopTimes"][0]
+    transport = FixtureTransport({"/api/v6/stoptimes": data})
+
+    result = boards.departures(
+        "gb-great-britain_9100AYRR3",
+        count=5,
+        time="2026-10-27T09:00:00Z",
+        transport=transport,
+    )
+
+    assert result["outcome"] == errors.OK
+    assert transport.query()["n"] == ["5"]
+    assert result["query"]["count"] == 5
+    assert result["returned_count"] == 5
+    assert len(result["departures"]) == 5
+    expected = [
+        int(datetime.fromisoformat(row["place"]["scheduledDeparture"].replace("Z", "+00:00")).timestamp())
+        for row in data["stopTimes"][:5]
+    ]
+    observed = [row["scheduled_departure"]["epoch_seconds"] for row in result["departures"]]
+    assert observed == expected
+    # the first retained row is still the upstream first row, not a re-sorted one
+    assert result["departures"][0]["trip_id"] == data["stopTimes"][0]["tripId"]
+
+
 def test_trip_cancelled_and_stop_cancelled_stay_separate():
     data = fs.load("synthetic_trip_cancelled_stoptime.json")
     transport = FixtureTransport({"/api/v6/stoptimes": data})
@@ -219,7 +252,7 @@ def test_trip_cancelled_and_stop_cancelled_stay_separate():
 
 
 def test_missing_required_realtime_is_malformed_not_scheduled():
-    data = june(fs.load("stoptimes_ayr_p3.json"))
+    data = june(fs.load("synthetic_stoptimes_ayr_p3.json"))
     del data["stopTimes"][0]["realTime"]
     transport = FixtureTransport({"/api/v6/stoptimes": data})
 
@@ -233,7 +266,7 @@ def test_missing_required_realtime_is_malformed_not_scheduled():
 
 
 def test_wrongly_typed_realtime_is_malformed():
-    data = june(fs.load("stoptimes_ayr_p3.json"))
+    data = june(fs.load("synthetic_stoptimes_ayr_p3.json"))
     data["stopTimes"][0]["realTime"] = "false"
     transport = FixtureTransport({"/api/v6/stoptimes": data})
 
@@ -263,7 +296,7 @@ def test_departures_body_must_be_an_object():
     ],
 )
 def test_malformed_board_containers_are_upstream_shape_failures(mutate):
-    data = june(fs.load("stoptimes_ayr_p3.json"))
+    data = june(fs.load("synthetic_stoptimes_ayr_p3.json"))
     mutate(data)
     transport = FixtureTransport({"/api/v6/stoptimes": data})
 
@@ -283,7 +316,7 @@ STOP_INFO = {"place": {"name": "Ayr", "stopId": "gb-great-britain_9100AYRR3",
 
 
 def test_naive_clock_uses_one_bounded_stop_info_request():
-    data = fs.load("stoptimes_ayr_p3.json")
+    data = fs.load("synthetic_stoptimes_ayr_p3.json")
     transport = FixtureTransport({"/api/v6/stop": STOP_INFO, "/api/v6/stoptimes": data})
 
     result = boards.departures(
@@ -303,7 +336,7 @@ def test_naive_clock_uses_one_bounded_stop_info_request():
 
 
 def test_caller_timezone_override_needs_no_discovery_request():
-    data = fs.load("stoptimes_ayr_p3.json")
+    data = fs.load("synthetic_stoptimes_ayr_p3.json")
     transport = FixtureTransport({"/api/v6/stoptimes": data})
 
     result = boards.departures(
@@ -319,7 +352,7 @@ def test_caller_timezone_override_needs_no_discovery_request():
 
 
 def test_endpoint_timezone_declaration_needs_no_discovery_request():
-    data = fs.load("stoptimes_ayr_p3.json")
+    data = fs.load("synthetic_stoptimes_ayr_p3.json")
     transport = FixtureTransport({"/api/v6/stoptimes": data})
 
     result = boards.departures(
@@ -334,7 +367,7 @@ def test_endpoint_timezone_declaration_needs_no_discovery_request():
 
 
 def test_explicit_instant_is_preserved_and_needs_no_discovery_request():
-    data = fs.load("stoptimes_ayr_p3.json")
+    data = fs.load("synthetic_stoptimes_ayr_p3.json")
     transport = FixtureTransport({"/api/v6/stoptimes": data})
 
     result = boards.departures(
@@ -353,7 +386,7 @@ def test_explicit_instant_is_preserved_and_needs_no_discovery_request():
 
 
 def test_fractional_instant_is_accepted_and_truncated_on_the_wire():
-    data = fs.load("stoptimes_ayr_p3.json")
+    data = fs.load("synthetic_stoptimes_ayr_p3.json")
     transport = FixtureTransport({"/api/v6/stoptimes": data})
 
     result = boards.departures(
@@ -368,7 +401,7 @@ def test_fractional_instant_is_accepted_and_truncated_on_the_wire():
 
 
 def test_omitted_time_is_resolved_exactly_once():
-    data = fs.load("stoptimes_ayr_p3.json")
+    data = fs.load("synthetic_stoptimes_ayr_p3.json")
     transport = FixtureTransport({"/api/v6/stoptimes": data})
     calls = []
 
@@ -388,7 +421,7 @@ def test_omitted_time_is_resolved_exactly_once():
 
 
 def test_stop_zone_disagreement_between_stop_info_and_response_is_unsupported():
-    data = fs.load("stoptimes_ayr_p3.json")
+    data = fs.load("synthetic_stoptimes_ayr_p3.json")
     stop_info = copy.deepcopy(STOP_INFO)
     stop_info["place"]["tz"] = "Europe/Berlin"
     transport = FixtureTransport({"/api/v6/stop": stop_info, "/api/v6/stoptimes": data})
@@ -452,7 +485,7 @@ def test_unknown_timezone_is_rejected_before_any_request():
 
 
 def test_request_echo_carries_the_query_controls():
-    data = fs.load("stoptimes_ayr_p3.json")
+    data = fs.load("synthetic_stoptimes_ayr_p3.json")
     transport = FixtureTransport({"/api/v6/stoptimes": data})
 
     result = boards.departures(
@@ -473,7 +506,7 @@ def test_request_echo_carries_the_query_controls():
 
 
 def test_missing_every_departure_timestamp_zone_is_null_with_a_warning():
-    data = june(fs.load("stoptimes_ayr_p3.json"))
+    data = june(fs.load("synthetic_stoptimes_ayr_p3.json"))
     del data["stopTimes"][0]["place"]["tz"]
     transport = FixtureTransport({"/api/v6/stoptimes": data})
 
@@ -907,19 +940,17 @@ def test_map_trips_polyline_and_missing_zone_are_honest():
 
 
 INVARIANCE_SCRIPT = r'''
-import gzip, json, os, sys
+import json, os, sys
 from urllib.parse import urlsplit
 
 REPO = os.environ["T4_REPO"]
 sys.path.insert(0, REPO)
 from transit_core import boards, onetomany
 
-D = os.environ["TRANSITOUS_TEST_FIXTURES"]
+D = os.path.join(REPO, "tests", "fixtures")
 def load(name):
-    raw = open(os.path.join(D, name), "rb").read()
-    if name.endswith(".gz"):
-        raw = gzip.decompress(raw)
-    return json.loads(raw)
+    with open(os.path.join(D, name), "rb") as handle:
+        return json.loads(handle.read())
 
 class Response:
     status = 200
@@ -933,7 +964,7 @@ class Transport:
         return Response(self.routes[urlsplit(request.full_url).path])
 
 t = Transport({
-    "/api/v6/stoptimes": load("stoptimes_ber_hbf.json.gz"),
+    "/api/v6/stoptimes": load("synthetic_stoptimes_ber_hbf.json"),
     "/api/v6/trip": load("synthetic_trip_intermediate_stops.json"),
     "/api/v6/map/trips": load("synthetic_map_trips_window.json"),
     "/api/v6/one-to-all": load("synthetic_reachable_pareto.json"),
@@ -970,7 +1001,6 @@ def test_decisions_are_identical_under_four_host_zones(tmp_path):
         env = dict(os.environ)
         env["TZ"] = zone
         env["T4_REPO"] = fs.REPO_ROOT
-        env["TRANSITOUS_TEST_FIXTURES"] = fs.FIXTURES_DIR
         completed = subprocess.run(
             ["/usr/bin/python3", str(script)],
             capture_output=True, text=True, env=env, timeout=60,

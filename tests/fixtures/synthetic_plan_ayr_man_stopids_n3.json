@@ -1,0 +1,410 @@
+{
+  "requestParameters": {},
+  "debugOutput": {},
+  "from": {
+    "name": "Ayr",
+    "stopId": "gb-great-britain_910GAYRR",
+    "lat": 55.45814,
+    "lon": -4.6258755,
+    "tz": "Europe/London"
+  },
+  "to": {
+    "name": "Manchester Piccadilly",
+    "stopId": "gb-great-britain_910GMNCRPIC",
+    "lat": 53.4774,
+    "lon": -2.2309,
+    "tz": "Europe/London"
+  },
+  "direct": [],
+  "itineraries": [
+    {
+      "id": "synthetic-ayr-man-n3-1",
+      "duration": 15660,
+      "startTime": "2026-10-27T09:00:00Z",
+      "endTime": "2026-10-27T13:21:00Z",
+      "transfers": 1,
+      "legs": [
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T09:00:00Z",
+          "endTime": "2026-10-27T09:04:00Z",
+          "scheduled": true,
+          "duration": 240,
+          "from": {
+            "name": "Ayr",
+            "stopId": "gb-great-britain_9100AYRR3",
+            "lat": 55.45814,
+            "lon": -4.6258755,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Ayr",
+            "stopId": "gb-great-britain_9100AYRR3",
+            "lat": 55.45814,
+            "lon": -4.6258755,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-ayr-man-n3-1a",
+            "precision": 6,
+            "length": 1
+          }
+        },
+        {
+          "mode": "LONG_DISTANCE",
+          "startTime": "2026-10-27T09:10:00Z",
+          "endTime": "2026-10-27T10:50:00Z",
+          "scheduled": true,
+          "duration": 6000,
+          "routeShortName": "TP",
+          "headsign": "Manchester Piccadilly",
+          "from": {
+            "name": "Ayr",
+            "stopId": "gb-great-britain_9100AYRR3",
+            "lat": 55.45814,
+            "lon": -4.6258755,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Glasgow Central",
+            "stopId": "gb-great-britain_9100GLGC",
+            "parentId": "gb-great-britain_910GGLGC",
+            "lat": 55.858,
+            "lon": -4.258,
+            "tz": "Europe/London",
+            "vertexType": "TRANSIT"
+          },
+          "legGeometry": {
+            "points": "synthetic-ayr-man-n3-1b-a",
+            "precision": 6,
+            "length": 150
+          },
+          "scheduledEndTime": "2026-10-27T10:50:00Z"
+        },
+        {
+          "mode": "LONG_DISTANCE",
+          "startTime": "2026-10-27T10:50:00Z",
+          "endTime": "2026-10-27T12:30:00Z",
+          "scheduled": true,
+          "duration": 6000,
+          "routeShortName": "TP",
+          "headsign": "Manchester Piccadilly",
+          "from": {
+            "name": "Glasgow Central",
+            "stopId": "gb-great-britain_9100GLGC",
+            "parentId": "gb-great-britain_910GGLGC",
+            "lat": 55.858,
+            "lon": -4.258,
+            "tz": "Europe/London",
+            "vertexType": "TRANSIT"
+          },
+          "to": {
+            "name": "Manchester Piccadilly",
+            "stopId": "gb-great-britain_9100MNCRPIC",
+            "lat": 53.4774,
+            "lon": -2.2309,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-ayr-man-n3-1b-b",
+            "precision": 6,
+            "length": 150
+          },
+          "scheduledStartTime": "2026-10-27T10:50:00Z"
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T13:20:00Z",
+          "endTime": "2026-10-27T13:21:00Z",
+          "scheduled": true,
+          "duration": 60,
+          "from": {
+            "name": "Manchester Piccadilly",
+            "stopId": "gb-great-britain_9100MNCRPIC",
+            "lat": 53.4774,
+            "lon": -2.2309,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Manchester Piccadilly",
+            "stopId": "gb-great-britain_9100MNCRPIC",
+            "lat": 53.4774,
+            "lon": -2.2309,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-ayr-man-n3-1c",
+            "precision": 6,
+            "length": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "synthetic-ayr-man-n3-2",
+      "duration": 15780,
+      "startTime": "2026-10-27T09:30:00Z",
+      "endTime": "2026-10-27T13:53:00Z",
+      "transfers": 2,
+      "legs": [
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T09:30:00Z",
+          "endTime": "2026-10-27T09:34:00Z",
+          "scheduled": true,
+          "duration": 240,
+          "from": {
+            "name": "Ayr",
+            "stopId": "gb-great-britain_9100AYRR3",
+            "lat": 55.45814,
+            "lon": -4.6258755,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Ayr",
+            "stopId": "gb-great-britain_9100AYRR3",
+            "lat": 55.45814,
+            "lon": -4.6258755,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-ayr-man-n3-2a",
+            "precision": 6,
+            "length": 1
+          }
+        },
+        {
+          "mode": "REGIONAL_RAIL",
+          "startTime": "2026-10-27T09:40:00Z",
+          "endTime": "2026-10-27T10:25:00Z",
+          "scheduled": true,
+          "duration": 2700,
+          "routeShortName": "1",
+          "headsign": "Glasgow Central",
+          "from": {
+            "name": "Ayr",
+            "stopId": "gb-great-britain_9100AYRR3",
+            "lat": 55.45814,
+            "lon": -4.6258755,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Kilmarnock",
+            "stopId": "gb-great-britain_9100KILMRNK",
+            "lat": 55.611,
+            "lon": -4.495,
+            "tz": "Europe/London",
+            "vertexType": "TRANSIT"
+          },
+          "legGeometry": {
+            "points": "synthetic-ayr-man-n3-2b-a",
+            "precision": 6,
+            "length": 40
+          },
+          "scheduledEndTime": "2026-10-27T10:25:00Z"
+        },
+        {
+          "mode": "REGIONAL_RAIL",
+          "startTime": "2026-10-27T10:25:00Z",
+          "endTime": "2026-10-27T11:10:00Z",
+          "scheduled": true,
+          "duration": 2700,
+          "routeShortName": "1",
+          "headsign": "Glasgow Central",
+          "from": {
+            "name": "Kilmarnock",
+            "stopId": "gb-great-britain_9100KILMRNK",
+            "lat": 55.611,
+            "lon": -4.495,
+            "tz": "Europe/London",
+            "vertexType": "TRANSIT"
+          },
+          "to": {
+            "name": "Glasgow Central",
+            "stopId": "gb-great-britain_9100GLGC",
+            "lat": 55.858,
+            "lon": -4.258,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-ayr-man-n3-2b-b",
+            "precision": 6,
+            "length": 40
+          },
+          "scheduledStartTime": "2026-10-27T10:25:00Z"
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T11:10:00Z",
+          "endTime": "2026-10-27T11:14:00Z",
+          "scheduled": true,
+          "duration": 240,
+          "from": {
+            "name": "Glasgow Central",
+            "stopId": "gb-great-britain_9100GLGC",
+            "lat": 55.858,
+            "lon": -4.258,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Glasgow Central",
+            "stopId": "gb-great-britain_9100GLGC",
+            "lat": 55.858,
+            "lon": -4.258,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-ayr-man-n3-2c",
+            "precision": 6,
+            "length": 1
+          }
+        },
+        {
+          "mode": "LONG_DISTANCE",
+          "startTime": "2026-10-27T11:20:00Z",
+          "endTime": "2026-10-27T12:50:00Z",
+          "scheduled": true,
+          "duration": 5400,
+          "routeShortName": "TP",
+          "headsign": "Manchester Piccadilly",
+          "from": {
+            "name": "Glasgow Central",
+            "stopId": "gb-great-britain_9100GLGC",
+            "lat": 55.858,
+            "lon": -4.258,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Manchester Piccadilly",
+            "stopId": "gb-great-britain_9100MNCRPIC",
+            "lat": 53.4774,
+            "lon": -2.2309,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-ayr-man-n3-2d",
+            "precision": 6,
+            "length": 150
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T13:52:00Z",
+          "endTime": "2026-10-27T13:53:00Z",
+          "scheduled": true,
+          "duration": 60,
+          "from": {
+            "name": "Manchester Piccadilly",
+            "stopId": "gb-great-britain_9100MNCRPIC",
+            "lat": 53.4774,
+            "lon": -2.2309,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Manchester Piccadilly",
+            "stopId": "gb-great-britain_9100MNCRPIC",
+            "lat": 53.4774,
+            "lon": -2.2309,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-ayr-man-n3-2e",
+            "precision": 6,
+            "length": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "synthetic-ayr-man-n3-3",
+      "duration": 15480,
+      "startTime": "2026-10-27T10:00:00Z",
+      "endTime": "2026-10-27T14:18:00Z",
+      "transfers": 0,
+      "legs": [
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T10:00:00Z",
+          "endTime": "2026-10-27T10:04:00Z",
+          "scheduled": true,
+          "duration": 240,
+          "from": {
+            "name": "Ayr",
+            "stopId": "gb-great-britain_9100AYRR3",
+            "lat": 55.45814,
+            "lon": -4.6258755,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Ayr",
+            "stopId": "gb-great-britain_9100AYRR3",
+            "lat": 55.45814,
+            "lon": -4.6258755,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-ayr-man-n3-3a",
+            "precision": 6,
+            "length": 1
+          }
+        },
+        {
+          "mode": "LONG_DISTANCE",
+          "startTime": "2026-10-27T10:10:00Z",
+          "endTime": "2026-10-27T13:30:00Z",
+          "scheduled": true,
+          "duration": 12000,
+          "routeShortName": "TP",
+          "headsign": "Manchester Piccadilly",
+          "from": {
+            "name": "Ayr",
+            "stopId": "gb-great-britain_9100AYRR3",
+            "lat": 55.45814,
+            "lon": -4.6258755,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Manchester Piccadilly",
+            "stopId": "gb-great-britain_9100MNCRPIC",
+            "lat": 53.4774,
+            "lon": -2.2309,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-ayr-man-n3-3b",
+            "precision": 6,
+            "length": 150
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T14:17:00Z",
+          "endTime": "2026-10-27T14:18:00Z",
+          "scheduled": true,
+          "duration": 60,
+          "from": {
+            "name": "Manchester Piccadilly",
+            "stopId": "gb-great-britain_9100MNCRPIC",
+            "lat": 53.4774,
+            "lon": -2.2309,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Manchester Piccadilly",
+            "stopId": "gb-great-britain_9100MNCRPIC",
+            "lat": 53.4774,
+            "lon": -2.2309,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-ayr-man-n3-3c",
+            "precision": 6,
+            "length": 1
+          }
+        }
+      ]
+    }
+  ],
+  "previousPageCursor": null,
+  "nextPageCursor": null
+}

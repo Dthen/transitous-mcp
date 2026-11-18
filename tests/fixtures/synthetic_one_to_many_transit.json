@@ -1,0 +1,40 @@
+{
+  "valid": {
+    "street_durations": [
+      { "duration": 300, "distance": 420.0 },
+      {},
+      { "duration": 120.5 }
+    ],
+    "transit_durations": [
+      [
+        { "duration": 1800, "transfers": 0 },
+        { "duration": 1500, "transfers": 1 }
+      ],
+      [],
+      []
+    ]
+  },
+  "malformed_length": {
+    "street_durations": [
+      { "duration": 300, "distance": 420.0 },
+      {},
+      { "duration": 120.5 }
+    ],
+    "transit_durations": [
+      [{ "duration": 1800, "transfers": 0 }],
+      []
+    ]
+  },
+  "missing_member": {
+    "street_durations": [
+      { "duration": 300, "distance": 420.0 },
+      {},
+      { "duration": 120.5 }
+    ],
+    "transit_durations": [
+      [{ "duration": 1800 }],
+      [],
+      []
+    ]
+  }
+}

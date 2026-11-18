@@ -1,0 +1,23 @@
+{
+  "requestParameters": {},
+  "debugOutput": {},
+  "from": { "name": "Ayr", "stopId": "gb-great-britain_910GAYRR", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" },
+  "to": { "name": "Glasgow Central", "stopId": "gb-great-britain_910GGLGC", "lat": 55.858, "lon": -4.258, "tz": "Europe/London" },
+  "direct": [],
+  "itineraries": [
+    {
+      "id": "synthetic-return-next-morning-1",
+      "duration": 36000,
+      "startTime": "2026-10-27T22:30:00Z",
+      "endTime": "2026-10-28T08:30:00Z",
+      "transfers": 0,
+      "legs": [
+        { "mode": "WALK", "startTime": "2026-10-27T22:30:00Z", "endTime": "2026-10-27T22:40:00Z", "scheduled": true, "duration": 600, "from": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "to": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-return-morning-a", "precision": 6, "length": 1 } },
+        { "mode": "RAIL", "startTime": "2026-10-28T07:00:00Z", "endTime": "2026-10-28T08:20:00Z", "scheduled": true, "duration": 4800, "routeShortName": "1", "headsign": "Glasgow Central", "from": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "to": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "lat": 55.858, "lon": -4.258, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-return-morning-b", "precision": 6, "length": 40 } },
+        { "mode": "WALK", "startTime": "2026-10-28T08:20:00Z", "endTime": "2026-10-28T08:30:00Z", "scheduled": true, "duration": 600, "from": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "lat": 55.858, "lon": -4.258, "tz": "Europe/London" }, "to": { "name": "Glasgow Central", "stopId": "gb-great-britain_9100GLGC", "lat": 55.858, "lon": -4.258, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-return-morning-c", "precision": 6, "length": 2 } }
+      ]
+    }
+  ],
+  "previousPageCursor": null,
+  "nextPageCursor": null
+}

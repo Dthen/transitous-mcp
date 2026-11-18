@@ -1,6 +1,6 @@
 """T2 duration tests: the §3.1 vectors, conservation, calendar facts (§3.1–3.2).
 
-The recorded vectors are asserted leg by leg as well as by conservation, so a
+The §3.1 vectors are asserted leg by leg as well as by conservation, so a
 missing internal walk cannot reconcile arithmetically while misdescribing the
 journey (§3.1) — that is exactly the failure mode a residual-based
 ``transfer_walk_seconds`` hides.
@@ -86,7 +86,7 @@ def vector(itinerary):
 
 
 def test_ayr_newcastle_coordinate_vector():
-    result = run(AYR_NCL_COORD, fixture="plan_ayr_ncl_coord.json")
+    result = run(AYR_NCL_COORD, fixture="synthetic_plan_ayr_ncl_coord.json")
     first = itinerary_of(result, 1)
     assert first["elapsed_seconds"] == 14100
     assert first["access_seconds"] == 240
@@ -99,7 +99,7 @@ def test_ayr_newcastle_coordinate_vector():
 
 
 def test_ayr_newcastle_transfer_walk_is_the_sum_of_both_internal_walks():
-    result = run(AYR_NCL_COORD, fixture="plan_ayr_ncl_coord.json")
+    result = run(AYR_NCL_COORD, fixture="synthetic_plan_ayr_ncl_coord.json")
     legs = itinerary_of(result, 1)["legs"]
     modes = [leg["mode"] for leg in legs]
     assert modes == ["WALK", "REGIONAL_RAIL", "WALK", "REGIONAL_RAIL", "WALK", "LONG_DISTANCE", "WALK"]
@@ -122,7 +122,7 @@ def test_ayr_newcastle_transfer_walk_is_the_sum_of_both_internal_walks():
 
 
 def test_ayr_newcastle_five_option_elapsed_span():
-    result = run(AYR_NCL_COORD, fixture="plan_ayr_ncl_coord.json")
+    result = run(AYR_NCL_COORD, fixture="synthetic_plan_ayr_ncl_coord.json")
     elapsed = [itinerary["elapsed_seconds"] for itinerary in result["itineraries"]]
     assert elapsed == [14100, 13860, 12840, 13860, 14100]
     assert min(elapsed) == 12840
@@ -130,7 +130,7 @@ def test_ayr_newcastle_five_option_elapsed_span():
 
 
 def test_ayr_newcastle_station_to_station_excludes_only_access_and_egress():
-    result = run(AYR_NCL_COORD, fixture="plan_ayr_ncl_coord.json")
+    result = run(AYR_NCL_COORD, fixture="synthetic_plan_ayr_ncl_coord.json")
     for itinerary in result["itineraries"]:
         expected = (
             itinerary["elapsed_seconds"]
@@ -152,7 +152,7 @@ def test_glasgow_edinburgh_coordinate_vector():
         "num_itineraries": 3,
         "transit_modes": ["RAIL"],
     }
-    result = run(args, fixture="plan_glw_edi_coord.json")
+    result = run(args, fixture="synthetic_plan_glw_edi_coord.json")
     assert vector(itinerary_of(result, 1)) == (4620, 660, 300, 240, 3300, 120, 3660)
 
 
@@ -164,7 +164,7 @@ def test_stop_id_newcastle_fastest_bookkeeping():
         "num_itineraries": 3,
         "transit_modes": ["RAIL"],
     }
-    result = run(args, fixture="plan_ayr_ncl_stopids_n3.json")
+    result = run(args, fixture="synthetic_plan_ayr_ncl_stopids_n3.json")
     fastest = min(result["itineraries"], key=lambda item: item["elapsed_seconds"])
     assert fastest["elapsed_seconds"] == 12540
     assert fastest["changes"] == 2
@@ -184,7 +184,7 @@ def test_newcastle_ayr_overnight_vector():
         "num_itineraries": 3,
         "transit_modes": ["RAIL"],
     }
-    result = run(args, fixture="plan_ncl_ayr_depart.json")
+    result = run(args, fixture="synthetic_plan_ncl_ayr_depart.json")
     first = itinerary_of(result, 1)
     assert vector(first) == (34380, 600, 240, 360, 12420, 20760, 33540)
     assert first["arrival_date_offset_days"] == 1
@@ -203,7 +203,7 @@ def test_the_reverse_itinerary_runs_newcastle_to_ayr():
         "num_itineraries": 3,
         "transit_modes": ["RAIL"],
     }
-    result = run(args, fixture="plan_ncl_ayr_depart.json")
+    result = run(args, fixture="synthetic_plan_ncl_ayr_depart.json")
     first = itinerary_of(result, 1)
     transit_legs = [leg for leg in first["legs"] if leg["mode"] != "WALK"]
     assert transit_legs[0]["from"]["name"] == "Newcastle"
@@ -229,7 +229,7 @@ def test_the_through_service_is_one_leg_and_no_change():
         "transit_modes": ["RAIL"],
         "search_window_seconds": 10800,
     }
-    result = run(args, fixture="plan_glw_ncl_direct.json")
+    result = run(args, fixture="synthetic_plan_glw_ncl_direct.json")
     first = itinerary_of(result, 1)
     assert first["transit_leg_count"] == 1
     assert first["changes"] == 0
@@ -241,15 +241,15 @@ def test_the_through_service_is_one_leg_and_no_change():
     assert result["query"]["search_window_seconds"] == 10800
 
 
-# ── conservation over the whole corpus ─────────────────────────────
+# ── conservation over the constructed plan bodies ──────────────────
 
 
 @pytest.mark.parametrize(
     "fixture,args",
     [
-        ("plan_ayr_ncl_coord.json", AYR_NCL_COORD),
+        ("synthetic_plan_ayr_ncl_coord.json", AYR_NCL_COORD),
         (
-            "plan_glw_edi_coord.json",
+            "synthetic_plan_glw_edi_coord.json",
             {
                 "from_lat": 55.858315,
                 "from_lon": -4.258436,
@@ -260,7 +260,7 @@ def test_the_through_service_is_one_leg_and_no_change():
             },
         ),
         (
-            "plan_ncl_ayr_depart.json",
+            "synthetic_plan_ncl_ayr_depart.json",
             {
                 "from_lat": 54.968338,
                 "from_lon": -1.616046,
@@ -271,7 +271,7 @@ def test_the_through_service_is_one_leg_and_no_change():
             },
         ),
         (
-            "plan_ber_muc.json",
+            "synthetic_plan_ber_muc.json",
             {
                 "from_lat": 52.5251,
                 "from_lon": 13.3694,
@@ -282,7 +282,7 @@ def test_the_through_service_is_one_leg_and_no_change():
             },
         ),
         (
-            "plan_ayr_man_stopids_n8.json.gz",
+            "synthetic_plan_ayr_man_stopids_n8.json",
             {
                 "from_stop_id": "gb-great-britain_910GAYRR",
                 "to_stop_id": "gb-great-britain_910GMNCRPIC",
@@ -504,9 +504,9 @@ def test_calendar_facts_use_each_endpoints_own_zone():
         "max_transfers": 2,
         "transit_modes": ["RAIL"],
     }
-    result = run(args, fixture="plan_ams_ber.json")
+    result = run(args, fixture="synthetic_plan_ams_ber.json")
     first = itinerary_of(result)
-    # the recorded payload tags Amsterdam Centraal as Europe/Brussels; that is the
+    # the fixture payload tags Amsterdam Centraal as Europe/Brussels; that is the
     # upstream's value and is echoed, never corrected
     assert first["departure"]["zone"] == "Europe/Brussels"
     assert first["arrival"]["zone"] == "Europe/Berlin"
@@ -523,7 +523,7 @@ def test_calendar_facts_use_each_endpoints_own_zone():
 
 
 def test_leg_indices_and_durations_are_numeric_and_ordered():
-    result = run(AYR_NCL_COORD, fixture="plan_ayr_ncl_coord.json")
+    result = run(AYR_NCL_COORD, fixture="synthetic_plan_ayr_ncl_coord.json")
     for itinerary in result["itineraries"]:
         assert [leg["index"] for leg in itinerary["legs"]] == list(range(len(itinerary["legs"])))
         starts = [leg["departure"]["epoch_seconds"] for leg in itinerary["legs"]]
@@ -534,7 +534,7 @@ def test_leg_indices_and_durations_are_numeric_and_ordered():
 
 
 def test_realtime_absent_is_reported_honestly():
-    result = run(AYR_NCL_COORD, fixture="plan_ayr_ncl_coord.json")
+    result = run(AYR_NCL_COORD, fixture="synthetic_plan_ayr_ncl_coord.json")
     assert result["query"]["realtime_present"] is False
     assert "realtime_unavailable" in [w["code"] for w in result["warnings"]]
     for itinerary in result["itineraries"]:
@@ -552,7 +552,7 @@ def test_elapsed_summary_for_the_recorded_manchester_eight_option_page():
         "num_itineraries": 8,
         "transit_modes": ["RAIL"],
     }
-    result = run(args, fixture="plan_ayr_man_stopids_n8.json.gz")
+    result = run(args, fixture="synthetic_plan_ayr_man_stopids_n8.json")
     assert result["query"]["upstream_count"] == 8
     elapsed = [itinerary["elapsed_seconds"] for itinerary in result["itineraries"]]
     assert elapsed == [15780, 15660, 15780, 15660, 15780, 15660, 15480, 15780]

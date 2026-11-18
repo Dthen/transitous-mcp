@@ -1,14 +1,14 @@
-"""Fixture provision and provenance gates (§8, §8.1, §8.3, §8.4).
+"""Fixture integrity and isolation gates (§8, §8.1, §8.3, §8.4).
 
-The provenance README is the manifest: one row per file, each row carrying the
-storage hash, the source and the value the suite asserts. These tests prove the
-manifest holds, that the loader cannot read outside the configured scratch corpus, that the
-gzip rule was applied by recorded size, and that the checker itself is not
-vacuous — the negative cases below construct a deliberately broken fixture
-directory in ``tmp_path`` and require a problem for each failure mode.
+The inputs are checked-in synthetic bodies (``tests/fixtures``), so the gates
+here police a different risk from the capture-era suite: not "did we copy the
+recording faithfully", but "is every body honestly labelled synthetic, is it the
+file the manifest describes, and can the loader read anything outside the
+fixtures directory". The checker's own non-vacuity is asserted by building
+deliberately broken directories in ``tmp_path`` and requiring one problem per
+failure mode.
 """
 
-import gzip
 import json
 import os
 import subprocess
@@ -17,6 +17,8 @@ import sys
 import pytest
 
 import fixture_support as fs
+
+from transit_core import http, timezones
 
 
 def test_manifest_has_no_integrity_problem():
@@ -30,49 +32,45 @@ def test_manifest_covers_every_fixture_and_no_phantom():
     assert len(rows) == len(fs.fixture_names())
 
 
-def test_manifest_constraints_agree_with_every_recorded_url():
-    """T1-04: the `constraints` cell never contradicts the row's own request URL.
-
-    Named separately from the general integrity gate so a drift in this column is
-    legible: the URL is the recorded request, and a row that documents a different
-    ``maxTransfers``/``numItineraries`` than it ran is a false provenance claim
-    even though the body hashes still hold.
-    """
-    assert fs.check_constraints(fs.load_manifest()) == []
+def test_every_fixture_is_labelled_synthetic_and_prefixed():
+    rows = fs.load_manifest()
+    assert rows
+    for row in rows:
+        assert row["kind"] == "synthetic", row
+        assert row["fixture"].startswith("synthetic_"), row
+        assert row["purpose"].strip(), row
 
 
-def test_full_approved_inventory_is_provisioned():
-    """The §8.1 observed inventory plus every §8.3 synthetic input."""
-    expected_observed = {
-        "plan_ayr_ncl_coord.json",
-        "plan_ayr_ncl_stopids_n3.json",
-        "plan_ayr_man_stopids_n3.json",
-        "plan_ayr_man_stopids_n8.json.gz",
-        "plan_ayr_ncl_arriveby.json",
-        "plan_ncl_ayr_depart.json",
-        "plan_glw_edi_coord.json",
-        "plan_glw_edi_stopids.json",
-        "plan_glw_edi_offset.json",
-        "plan_glw_edi_naive_reject.json",
-        "plan_glw_ncl_direct.json",
-        "plan_glw_ncl_walk60.json",
-        "plan_ams_ber.json",
-        "plan_ber_muc.json",
-        "plan_empty_no_service.json",
-        "plan_empty_constraints.json",
-        "window_error.json",
-        "stop_metro_central.json",
-        "stoptimes_ayr_p3.json",
-        "stoptimes_glc_p11.json",
-        "stoptimes_ber_hbf.json.gz",
-        "geocode_newcastle_central_station.json",
-        "geocode_manchester_piccadilly_station.json",
-        "geocode_ayr.json",
-        "geocode_ayr_station.json",
-        "geocode_newcastle_stop_rail.json",
-        "geocode_man_picc_rrail.json",
-    }
-    expected_synthetic = {
+def test_the_full_inventory_is_provisioned():
+    """Every body the suite reads is present and listed, and nothing else is."""
+    expected = {
+        "synthetic_plan_ayr_ncl_coord.json",
+        "synthetic_plan_ayr_ncl_stopids_n3.json",
+        "synthetic_plan_ayr_man_stopids_n3.json",
+        "synthetic_plan_ayr_man_stopids_n8.json",
+        "synthetic_plan_ayr_ncl_arriveby.json",
+        "synthetic_plan_ncl_ayr_depart.json",
+        "synthetic_plan_glw_edi_coord.json",
+        "synthetic_plan_glw_edi_stopids.json",
+        "synthetic_plan_glw_edi_offset.json",
+        "synthetic_plan_glw_edi_naive_reject.json",
+        "synthetic_plan_glw_ncl_direct.json",
+        "synthetic_plan_glw_ncl_walk60.json",
+        "synthetic_plan_ams_ber.json",
+        "synthetic_plan_ber_muc.json",
+        "synthetic_plan_empty_no_service.json",
+        "synthetic_plan_empty_constraints.json",
+        "synthetic_window_error.json",
+        "synthetic_stop_metro_central.json",
+        "synthetic_stoptimes_ayr_p3.json",
+        "synthetic_stoptimes_glc_p11.json",
+        "synthetic_stoptimes_ber_hbf.json",
+        "synthetic_geocode_newcastle_central_station.json",
+        "synthetic_geocode_manchester_piccadilly_station.json",
+        "synthetic_geocode_ayr.json",
+        "synthetic_geocode_ayr_station.json",
+        "synthetic_geocode_newcastle_stop_rail.json",
+        "synthetic_geocode_man_picc_rrail.json",
         "synthetic_plan_direct_alternatives.json",
         "synthetic_plan_cancelled_transit_leg.json",
         "synthetic_trip_intermediate_stops.json",
@@ -86,38 +84,14 @@ def test_full_approved_inventory_is_provisioned():
         "synthetic_one_to_many_transit.json",
         "synthetic_naive_arriveby.json",
     }
-    observed = {r["fixture"] for r in fs.load_manifest() if r["kind"] == "observed"}
-    synthetic = {r["fixture"] for r in fs.load_manifest() if r["kind"] == "synthetic"}
-    assert observed == expected_observed
-    assert synthetic == expected_synthetic
-
-
-def test_loader_opens_gzipped_and_plain_bodies_identically():
-    from_gz = fs.load("stoptimes_ber_hbf.json.gz")
-    assert isinstance(from_gz, dict) and len(from_gz["stopTimes"]) == 200
-    plain = fs.load("stop_metro_central.json")
-    assert plain["place"]["tz"] == "Europe/London"
-    # gzip is storage only: the loader exposes the uncompressed logical bytes
-    logical = fs.read_bytes("stoptimes_ber_hbf.json.gz")
-    assert logical.lstrip().startswith(b"{")
-    with open(fs.fixture_path("stoptimes_ber_hbf.json.gz"), "rb") as fh:
-        assert fh.read(2) == b"\x1f\x8b"          # on disk it really is gzip
-    assert json.loads(logical) == from_gz
-
-
-def test_gzip_storage_rule_follows_recorded_size():
-    for name in fs.fixture_names():
-        logical = fs.read_bytes(name)
-        if len(logical) > fs.GZIP_THRESHOLD_BYTES:
-            assert name.endswith(".json.gz"), name
-        else:
-            assert not name.endswith(".json.gz"), name
+    assert set(fs.fixture_names()) == expected
+    assert {row["fixture"] for row in fs.load_manifest()} == expected
 
 
 def test_loader_returns_a_fresh_object_each_call():
-    first = fs.load("stop_metro_central.json")
+    first = fs.load("synthetic_stop_metro_central.json")
     first["place"]["name"] = "mutated"
-    second = fs.load("stop_metro_central.json")
+    second = fs.load("synthetic_stop_metro_central.json")
     assert second["place"]["name"] == "Central Station"
 
 
@@ -126,34 +100,72 @@ def test_loader_cannot_resolve_paths_outside_the_fixture_directory():
         fs.fixture_path("../server.py")
     with pytest.raises(FileNotFoundError):
         fs.fixture_path("/etc/passwd")
+    with pytest.raises(FileNotFoundError):
+        fs.fixture_path("no-such-fixture.json")
+
+
+def test_a_missing_required_fixture_fails_loudly_with_its_checked_in_path():
+    with pytest.raises(FileNotFoundError) as caught:
+        fs.load("synthetic_absent_body.json")
+    assert "synthetic_absent_body.json" in str(caught.value)
+    assert fs.FIXTURES_DIR in str(caught.value)
+
+
+def test_fixtures_live_inside_the_checkout_and_need_no_environment():
+    repo = os.path.realpath(fs.REPO_ROOT)
+    fixtures = os.path.realpath(fs.FIXTURES_DIR)
+    assert os.path.commonpath([fixtures, repo]) == repo
+    assert fixtures == os.path.join(repo, "tests", "fixtures")
+    # The loader does not consult TRANSITOUS_TEST_FIXTURES; a stale value in the
+    # environment is inert rather than an alternate corpus.
+    env = dict(os.environ, TRANSITOUS_TEST_FIXTURES="/nonexistent/old-corpus")
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import fixture_support, json; print(json.dumps([fixture_support.FIXTURES_DIR, len(fixture_support.fixture_names())]))",
+        ],
+        cwd=os.path.dirname(os.path.abspath(fs.__file__)),
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    directory, count = json.loads(result.stdout)
+    assert os.path.realpath(directory) == fixtures
+    assert count == len(fs.fixture_names())
 
 
 def test_tests_tree_contains_no_token_shaped_string():
     assert fs.scan_for_tokens() == []
 
 
-def test_derived_window_fixture_preserves_both_verbatim_bodies():
-    data = fs.load("window_error.json")
+def test_window_fixture_carries_both_clock_forms():
+    """The two out-of-window bodies differ only in the echoed clock."""
+    data = fs.load("synthetic_window_error.json")
     assert len(data["entries"]) == 2
     queries = set()
     for entry in data["entries"]:
         assert entry["status"] == 400
         assert "outside of loaded timetable window" in entry["body"]
-        recorded = json.loads(entry["recorded_mcp_text"])
-        assert recorded["error"] == "HTTP 400: " + entry["body"]
         message = json.loads(entry["body"])["error"]
         assert message.startswith("query time 2026-07-15 ")
         queries.add(message.split()[3])
-    # the offset-bearing query is echoed by the upstream in UTC: 09:00+01:00 = 08:00
+        assert http.parse_timetable_window(entry["body"]) == {
+            "start": "2026-09-20 00:00",
+            "end": "2027-10-21 00:00",
+        }
+    # the offset-bearing query was rendered by the upstream in UTC: 09:00+01:00 = 08:00
     assert queries == {"08:00", "09:00"}
 
 
 def test_parent_id_is_exercised_from_a_body_that_carries_it():
-    stoptimes = fs.load("stoptimes_ayr_p3.json")
+    stoptimes = fs.load("synthetic_stoptimes_ayr_p3.json")
     assert stoptimes["place"]["parentId"]
     assert stoptimes["stopTimes"][0]["place"]["parentId"] == stoptimes["place"]["parentId"]
     # and the stop-metadata body genuinely lacks it, which is what its row asserts
-    assert "parentId" not in fs.load("stop_metro_central.json")["place"]
+    assert "parentId" not in fs.load("synthetic_stop_metro_central.json")["place"]
 
 
 # ── non-vacuity: the checker must reject a tampered directory ───────
@@ -161,19 +173,16 @@ def test_parent_id_is_exercised_from_a_body_that_carries_it():
 
 @pytest.fixture()
 def broken_fixtures(tmp_path):
-    """A two-file fixture directory that the integrity checker must police."""
+    """A one-or-two-file fixture directory that the checker must police."""
+
     def build(files, rows):
         root = tmp_path / "fixtures"
         root.mkdir()
         for name, blob in files.items():
             (root / name).write_bytes(blob)
-        header = (
-            "| fixture | kind | source | source_sha256 | captured_utc | query_direction | "
-            "constraints | asserts | content_sha256 |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n"
-        )
+        header = "| fixture | kind | content_sha256 | purpose |\n| --- | --- | --- | --- |\n"
         lines = [header] + [
-            "| `{fixture}` | {kind} | {source} | `{source_sha}` | {captured} | {query} | "
-            "{constraints} | {asserts} | `{content_sha}` |\n".format(**row)
+            "| `{fixture}` | {kind} | `{content_sha}` | {purpose} |\n".format(**row)
             for row in rows
         ]
         (root / "README.md").write_text("".join(lines), encoding="utf-8")
@@ -181,15 +190,10 @@ def broken_fixtures(tmp_path):
 
     def row(**overrides):
         base = dict(
-            fixture="a.json",
-            kind="observed",
-            source="pkg/a.body.json",
-            source_sha=fs.sha256_bytes(b"{}"),
-            captured="2026-10-21T09:00:00Z",
-            query="GET /api/v6/plan (depart_after)",
-            constraints="none",
-            asserts="nothing",
+            fixture="synthetic_a.json",
+            kind="synthetic",
             content_sha=fs.sha256_bytes(b"{}"),
+            purpose="a constructed example",
         )
         base.update(overrides)
         return base
@@ -199,16 +203,16 @@ def broken_fixtures(tmp_path):
 
 def test_checker_rejects_a_tampered_body(broken_fixtures):
     build, row = broken_fixtures
-    root = build({"a.json": b'{"tampered": true}'}, [row()])
+    root = build({"synthetic_a.json": b'{"tampered": true}'}, [row()])
     problems = fs.verify_manifest(root)
     assert any("content_sha256" in p for p in problems), problems
 
 
 def test_checker_rejects_a_missing_row(broken_fixtures):
     build, row = broken_fixtures
-    root = build({"a.json": b"{}", "b.json": b"{}"}, [row()])
+    root = build({"synthetic_a.json": b"{}", "synthetic_b.json": b"{}"}, [row()])
     problems = fs.verify_manifest(root)
-    assert any("unlisted fixture file: b.json" in p for p in problems), problems
+    assert any("unlisted fixture file: synthetic_b.json" in p for p in problems), problems
 
 
 def test_checker_rejects_a_row_without_a_file(broken_fixtures):
@@ -217,85 +221,38 @@ def test_checker_rejects_a_row_without_a_file(broken_fixtures):
     assert any("without a file" in p for p in fs.verify_manifest(root))
 
 
-def test_checker_rejects_a_mislabelled_synthetic(broken_fixtures):
+def test_checker_rejects_an_observed_label(broken_fixtures):
     build, row = broken_fixtures
-    root = build(
-        {"synthetic_a.json": b"{}"},
-        [
-            row(
-                fixture="synthetic_a.json",
-                kind="observed",
-                content_sha=fs.sha256_bytes(b"{}"),
-            )
-        ],
-    )
-    assert any("synthetic_ prefix" in p for p in fs.verify_manifest(root))
+    root = build({"synthetic_a.json": b"{}"}, [row(kind="observed")])
+    assert any("synthetic" in p and "kind" in p for p in fs.verify_manifest(root))
 
 
-def test_checker_rejects_an_ungzipped_large_body(broken_fixtures):
+def test_checker_rejects_a_fixture_without_the_synthetic_prefix(broken_fixtures):
     build, row = broken_fixtures
-    big = b"{}" + b" " * (fs.GZIP_THRESHOLD_BYTES + 1)
-    root = build({"a.json": big}, [row(content_sha=fs.sha256_bytes(big), source_sha=fs.sha256_bytes(big))])
-    assert any("exceeds 300 KB" in p for p in fs.verify_manifest(root))
+    root = build({"a.json": b"{}"}, [row(fixture="a.json")])
+    assert any("prefix" in p for p in fs.verify_manifest(root))
 
 
-def test_checker_rejects_an_observed_body_that_diverges_from_its_source(broken_fixtures):
+def test_checker_rejects_a_body_that_claims_real_provenance(broken_fixtures):
     build, row = broken_fixtures
-    root = build({"a.json": b"{}"}, [row(source_sha=fs.sha256_bytes(b'{"different": 1}'))])
-    assert any("byte-identical" in p for p in fs.verify_manifest(root))
+    blob = b'{"note": "captured from the live service"}'
+    root = build({"synthetic_a.json": blob}, [row(content_sha=fs.sha256_bytes(blob))])
+    assert any("provenance claim" in p for p in fs.verify_manifest(root))
+
+
+def test_checker_rejects_an_empty_purpose(broken_fixtures):
+    build, row = broken_fixtures
+    root = build({"synthetic_a.json": b"{}"}, [row(purpose="")])
+    assert any("empty purpose" in p for p in fs.verify_manifest(root))
 
 
 def test_checker_rejects_a_truncated_manifest_row(broken_fixtures):
     build, row = broken_fixtures
-    root = build({"a.json": b"{}"}, [row()])
+    root = build({"synthetic_a.json": b"{}"}, [row()])
     with open(os.path.join(root, "README.md"), "a", encoding="utf-8") as fh:
-        fh.write("| `b.json` | observed | pkg/b.body.json |\n")
+        fh.write("| `synthetic_b.json` | synthetic |\n")
     with pytest.raises(AssertionError, match="cells"):
         fs.verify_manifest(root)
-
-
-#: A recorded request URL and the constraint cell that agrees with it. §8.4: the
-#: row's own URL is the recorded request, so the `constraints` column may neither
-#: contradict it (T1-04) nor silently drop a constraint the URL carries.
-RECORDED_URL = (
-    "https://api.transitous.org/api/v6/plan?fromPlace=a&toPlace=b"
-    "&numItineraries=3&maxTransfers=0&transitModes=RAIL&searchWindow=10800 (depart_after)"
-)
-AGREEING_CONSTRAINTS = "numItineraries=3, maxTransfers=0, transitModes=RAIL, searchWindow=10800"
-
-
-def test_checker_rejects_constraints_that_contradict_the_recorded_url(broken_fixtures):
-    build, row = broken_fixtures
-    root = build(
-        {"a.json": b"{}"},
-        [row(query=RECORDED_URL, constraints="numItineraries=3, maxTransfers=5, transitModes=RAIL, searchWindow=10800")],
-    )
-    problems = fs.verify_manifest(root)
-    assert any("maxTransfers" in p and "5" in p for p in problems), problems
-
-
-def test_checker_rejects_a_recorded_constraint_the_row_omits(broken_fixtures):
-    build, row = broken_fixtures
-    root = build(
-        {"a.json": b"{}"},
-        [row(query=RECORDED_URL, constraints="numItineraries=3, maxTransfers=0, transitModes=RAIL")],
-    )
-    problems = fs.verify_manifest(root)
-    assert any("searchWindow" in p for p in problems), problems
-
-
-def test_checker_accepts_constraints_that_agree_with_the_recorded_url(broken_fixtures):
-    build, row = broken_fixtures
-    root = build({"a.json": b"{}"}, [row(query=RECORDED_URL, constraints=AGREEING_CONSTRAINTS)])
-    assert fs.verify_manifest(root) == []
-
-
-def test_checker_leaves_a_row_without_a_recorded_url_alone(broken_fixtures):
-    """A derived or constructed body has no single request to compare against."""
-    build, row = broken_fixtures
-    root = build({"a.json": b"{}"}, [row(query="constructed plan response; see the note",
-                                        constraints="numItineraries=2 / 1, transitModes=RAIL")])
-    assert fs.verify_manifest(root) == []
 
 
 def test_scanner_detects_a_planted_token(tmp_path):
@@ -303,51 +260,123 @@ def test_scanner_detects_a_planted_token(tmp_path):
     planted.mkdir()
     # assembled at runtime so this file never contains a token-shaped literal
     header = "".join(["Authori", "zation: ", "Bear", "er abcdefghijklmnop"])
-    (planted / "leak.json").write_text(json.dumps({"header": header}), encoding="utf-8")
+    (planted / "synthetic_leak.json").write_text(json.dumps({"header": header}), encoding="utf-8")
     hits = fs.scan_for_tokens(str(planted))
     assert hits, "the token scanner must catch a planted credential"
 
 
-def test_capture_corpus_is_explicitly_configured_outside_the_repository():
-    configured = os.path.realpath(os.path.expanduser(os.environ["TRANSITOUS_TEST_FIXTURES"]))
-    repo = os.path.realpath(fs.REPO_ROOT)
-    assert fs.FIXTURES_DIR == configured
-    assert os.path.commonpath([configured, repo]) != repo
-    assert not os.path.exists(os.path.join(repo, "tests", "fixtures"))
+# ── constructed plans are internally coherent examples ──────────────
+#
+# These bodies stand in for real responses, so they must themselves be
+# believable: a declared leg duration that contradicts its instants, a leg that
+# starts before the previous one ended, or a leg that departs from somewhere
+# other than where the previous leg arrived would make the suite assert against
+# an example no correct upstream could produce. This is a check on the test
+# data, not a new validation rule for production code.
+#
+# Excluded on purpose: ``synthetic_plan_glw_edi_naive_reject`` and
+# ``synthetic_window_error`` are error bodies, not plans; the empty-plan
+# fixtures carry no alternatives; board/geocode/one-to-many fixtures are not
+# plans. The street-only ``direct`` alternative is included because it is a
+# complete itinerary.
+
+CONSISTENT_PLAN_BODIES = (
+    "synthetic_plan_ams_ber.json",
+    "synthetic_plan_ayr_man_stopids_n3.json",
+    "synthetic_plan_ayr_man_stopids_n8.json",
+    "synthetic_plan_ayr_ncl_arriveby.json",
+    "synthetic_plan_ayr_ncl_coord.json",
+    "synthetic_plan_ayr_ncl_stopids_n3.json",
+    "synthetic_plan_ber_muc.json",
+    "synthetic_plan_cancelled_transit_leg.json",
+    "synthetic_plan_direct_alternatives.json",
+    "synthetic_plan_glw_edi_coord.json",
+    "synthetic_plan_glw_edi_offset.json",
+    "synthetic_plan_glw_edi_stopids.json",
+    "synthetic_plan_glw_ncl_direct.json",
+    "synthetic_plan_glw_ncl_walk60.json",
+    "synthetic_naive_arriveby.json",
+    "synthetic_plan_ncl_ayr_depart.json",
+    "synthetic_return_next_morning.json",
+    "synthetic_westbound_date_line.json",
+)
 
 
-# ── a missing scratch corpus must say so (§8.1, amendment 02) ───────
+def _instant(value):
+    return timezones.parse_rfc3339(value)
 
 
-def _import_support_without_corpus(**overrides):
-    """Import the loader in a child process with the corpus variable controlled.
+def _leg_start(leg):
+    value = leg.get("startTime") or leg["from"].get("departure")
+    assert value, f"leg {leg.get('mode')} has no start instant"
+    return _instant(value)
 
-    The parent suite is itself running under a configured corpus, so the only way
-    to observe the unconfigured path is a child interpreter. Bytecode writing is
-    off so the probe leaves nothing behind in the checkout.
-    """
-    env = {key: value for key, value in os.environ.items() if key != "TRANSITOUS_TEST_FIXTURES"}
-    env.update(overrides)
-    env["PYTHONDONTWRITEBYTECODE"] = "1"
-    return subprocess.run(
-        [sys.executable, "-c", "import fixture_support"],
-        cwd=os.path.dirname(os.path.abspath(fs.__file__)),
-        env=env,
-        capture_output=True,
-        text=True,
+
+def _leg_end(leg):
+    value = leg.get("endTime") or leg["to"].get("arrival")
+    assert value, f"leg {leg.get('mode')} has no end instant"
+    return _instant(value)
+
+
+def assert_alternative_is_coherent(alternative, label):
+    """One itinerary/direct object: bounds, durations, order and place chaining."""
+    start = _instant(alternative["startTime"])
+    end = _instant(alternative["endTime"])
+    legs = alternative["legs"]
+    assert legs, f"{label}: no legs"
+    assert alternative["duration"] == int((end - start).total_seconds()), (
+        f"{label}: itinerary duration contradicts its instants"
     )
+    assert _leg_start(legs[0]) == start, f"{label}: first leg does not start the itinerary"
+    assert _leg_end(legs[-1]) == end, f"{label}: last leg does not end the itinerary"
+
+    previous_end = None
+    previous_to = None
+    for index, leg in enumerate(legs):
+        leg_start = _leg_start(leg)
+        leg_end = _leg_end(leg)
+        assert leg_end >= leg_start, f"{label} leg {index}: ends before it starts"
+        assert leg["duration"] == int((leg_end - leg_start).total_seconds()), (
+            f"{label} leg {index}: declared duration contradicts its instants"
+        )
+        if previous_end is not None:
+            assert leg_start >= previous_end, f"{label} leg {index}: overlaps the previous leg"
+            assert_places_continue(previous_to, leg["from"], f"{label} leg {index}")
+        previous_end, previous_to = leg_end, leg["to"]
 
 
-def test_an_unset_corpus_variable_fails_loudly_instead_of_skipping():
-    result = _import_support_without_corpus()
-    assert result.returncode != 0, "a missing corpus must never look like a clean import"
-    assert "TRANSITOUS_TEST_FIXTURES" in result.stderr
-    assert "scratch corpus" in result.stderr
+def assert_places_continue(previous_to, leg_from, label):
+    """A leg departs from where the previous leg arrived.
+
+    Identity is the stop id where both places carry one (platform-level bodies
+    may render a different coordinate for the same stop); otherwise name and
+    coordinates must match exactly.
+    """
+    previous_stop = previous_to.get("stopId")
+    current_stop = leg_from.get("stopId")
+    if isinstance(previous_stop, str) and previous_stop and isinstance(current_stop, str) and current_stop:
+        assert previous_stop == current_stop, (
+            f"{label}: departs from {current_stop!r} but the previous leg arrived at {previous_stop!r}"
+        )
+        return
+    assert (previous_to.get("name"), previous_to.get("lat"), previous_to.get("lon")) == (
+        leg_from.get("name"),
+        leg_from.get("lat"),
+        leg_from.get("lon"),
+    ), f"{label}: departs from {leg_from.get('name')!r} but the previous leg arrived at {previous_to.get('name')!r}"
 
 
-def test_a_corpus_path_that_does_not_exist_fails_loudly(tmp_path):
-    absent = tmp_path / "no-such-corpus"
-    result = _import_support_without_corpus(TRANSITOUS_TEST_FIXTURES=str(absent))
-    assert result.returncode != 0
-    assert "TRANSITOUS_TEST_FIXTURES" in result.stderr
-    assert not absent.exists()
+@pytest.mark.parametrize("name", CONSISTENT_PLAN_BODIES)
+def test_constructed_plan_body_is_internally_coherent(name):
+    body = fs.load(name)
+    alternatives = list(body.get("itineraries") or []) + list(body.get("direct") or [])
+    assert alternatives, f"{name}: expected at least one alternative"
+    for position, alternative in enumerate(alternatives, start=1):
+        assert_alternative_is_coherent(alternative, f"{name} alternative {position}")
+
+
+def test_constructed_continuation_pages_are_internally_coherent():
+    pages = fs.load("synthetic_continuation_pages.json")
+    for page_name, body in pages.items():
+        for position, itinerary in enumerate(body["itineraries"], start=1):
+            assert_alternative_is_coherent(itinerary, f"continuation {page_name} itinerary {position}")

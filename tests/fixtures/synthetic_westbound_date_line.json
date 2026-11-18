@@ -1,0 +1,58 @@
+{
+  "requestParameters": {},
+  "debugOutput": {},
+  "from": {
+    "name": "START",
+    "lat": -36.8485,
+    "lon": 174.7633
+  },
+  "to": {
+    "name": "END",
+    "lat": 21.3069,
+    "lon": -157.8583
+  },
+  "direct": [],
+  "itineraries": [
+    {
+      "id": "synthetic-westbound-date-line-1",
+      "duration": 7200,
+      "startTime": "2026-10-27T23:00:00Z",
+      "endTime": "2026-10-28T01:00:00Z",
+      "transfers": 0,
+      "legs": [
+        {
+          "mode": "AIRPLANE",
+          "startTime": "2026-10-27T23:00:00Z",
+          "endTime": "2026-10-28T01:00:00Z",
+          "scheduled": true,
+          "duration": 7200,
+          "routeShortName": "NZ",
+          "headsign": "Honolulu",
+          "from": {
+            "name": "Auckland",
+            "stopId": "nz-auckland-airport",
+            "lat": -37.0082,
+            "lon": 174.7850,
+            "tz": "Pacific/Auckland",
+            "vertexType": "TRANSIT"
+          },
+          "to": {
+            "name": "Honolulu",
+            "stopId": "us-honolulu-airport",
+            "lat": 21.3187,
+            "lon": -157.9225,
+            "tz": "Pacific/Honolulu",
+            "vertexType": "TRANSIT"
+          },
+          "legGeometry": {
+            "points": "synthetic-westbound-date-line",
+            "precision": 6,
+            "length": 7000
+          }
+        }
+      ]
+    }
+  ],
+  "previousPageCursor": null,
+  "nextPageCursor": null
+}

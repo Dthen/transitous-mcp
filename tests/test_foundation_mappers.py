@@ -1,7 +1,7 @@
 """Foundation mappers: duration decomposition, calendar facts, places, timestamps.
 
 These three boundaries are pure functions over already-fetched payloads, so the
-whole file runs against the recorded bodies with no transport at all. The §3.1
+whole file runs against the constructed fixtures with no transport at all. The §3.1
 vectors are asserted to the second, and each quantity is checked to have been
 derived the way the specification derives it — not merely to add up.
 """
@@ -22,7 +22,7 @@ def aware(y, m, d, hh=0, mm=0, ss=0, offset_hours=0):
     return datetime(y, m, d, hh, mm, ss, tzinfo=timezone(timedelta(hours=offset_hours)))
 
 
-# ── the three recorded vectors (§3.1) ──────────────────────────────
+# ── the three §3.1 vectors ─────────────────────────────────────────
 
 AYR_NCL = (14100, 240, 60, 240, 12240, 1320, 13800)
 GLW_EDI = (4620, 660, 300, 240, 3300, 120, 3660)
@@ -42,9 +42,9 @@ VECTOR_KEYS = (
 @pytest.mark.parametrize(
     "fixture, expected",
     [
-        ("plan_ayr_ncl_coord.json", AYR_NCL),
-        ("plan_glw_edi_coord.json", GLW_EDI),
-        ("plan_ncl_ayr_depart.json", NCL_AYR),
+        ("synthetic_plan_ayr_ncl_coord.json", AYR_NCL),
+        ("synthetic_plan_glw_edi_coord.json", GLW_EDI),
+        ("synthetic_plan_ncl_ayr_depart.json", NCL_AYR),
     ],
 )
 def test_recorded_vectors_decompose_to_the_second(fixture, expected):
@@ -58,7 +58,7 @@ def test_recorded_vectors_decompose_to_the_second(fixture, expected):
 
 def test_access_is_measured_from_the_first_transit_leg_not_the_first_leg():
     """Glasgow→Edinburgh itinerary 0 starts with a 660 s walk before any service."""
-    itinerary = fs.load("plan_glw_edi_coord.json")["itineraries"][0]
+    itinerary = fs.load("synthetic_plan_glw_edi_coord.json")["itineraries"][0]
     assert itinerary["legs"][0]["mode"] == "WALK"
     assert itinerary["legs"][0]["duration"] == 660
     breakdown = durations.decompose_itinerary(itinerary).to_object()
@@ -68,7 +68,7 @@ def test_access_is_measured_from_the_first_transit_leg_not_the_first_leg():
 
 def test_transfer_walking_is_summed_leg_by_leg_and_never_taken_as_a_residual():
     """Ayr→Newcastle has two 120 s internal walks, one of them a dummy leg."""
-    itinerary = fs.load("plan_ayr_ncl_coord.json")["itineraries"][0]
+    itinerary = fs.load("synthetic_plan_ayr_ncl_coord.json")["itineraries"][0]
     legs = itinerary["legs"]
     transit_positions = [i for i, leg in enumerate(legs) if durations.is_transit_mode(leg["mode"])]
     internal = legs[transit_positions[0] + 1: transit_positions[-1]]
@@ -88,7 +88,7 @@ def test_transfer_walking_is_summed_leg_by_leg_and_never_taken_as_a_residual():
 
 
 def test_the_three_vectors_conserve_elapsed_exactly():
-    for fixture in ("plan_ayr_ncl_coord.json", "plan_glw_edi_coord.json", "plan_ncl_ayr_depart.json"):
+    for fixture in ("synthetic_plan_ayr_ncl_coord.json", "synthetic_plan_glw_edi_coord.json", "synthetic_plan_ncl_ayr_depart.json"):
         breakdown = durations.decompose_itinerary(fs.load(fixture)["itineraries"][0])
         assert breakdown.conserves, fixture
         total = (
@@ -103,7 +103,7 @@ def test_the_three_vectors_conserve_elapsed_exactly():
 
 @pytest.mark.parametrize(
     "fixture",
-    ["plan_ayr_ncl_coord.json", "plan_glw_ncl_walk60.json", "plan_ams_ber.json", "plan_ber_muc.json"],
+    ["synthetic_plan_ayr_ncl_coord.json", "synthetic_plan_glw_ncl_walk60.json", "synthetic_plan_ams_ber.json", "synthetic_plan_ber_muc.json"],
 )
 def test_every_itinerary_in_a_recorded_body_conserves(fixture):
     for index, itinerary in enumerate(fs.load(fixture)["itineraries"]):
@@ -115,7 +115,7 @@ def test_every_itinerary_in_a_recorded_body_conserves(fixture):
 
 def test_elapsed_comes_from_instants_not_from_clock_faces():
     # 09:01Z → 12:56Z is 14100 s whatever the legs claim to add up to
-    itinerary = fs.load("plan_ayr_ncl_coord.json")["itineraries"][0]
+    itinerary = fs.load("synthetic_plan_ayr_ncl_coord.json")["itineraries"][0]
     breakdown = durations.decompose_itinerary(itinerary)
     assert breakdown.elapsed_seconds == 14100
     leg_total = sum(leg["duration"] for leg in itinerary["legs"])
@@ -127,7 +127,7 @@ def test_elapsed_comes_from_instants_not_from_clock_faces():
 
 
 def test_a_missing_internal_walk_duration_nulls_the_component_and_warns():
-    itinerary = copy.deepcopy(fs.load("plan_ayr_ncl_coord.json")["itineraries"][0])
+    itinerary = copy.deepcopy(fs.load("synthetic_plan_ayr_ncl_coord.json")["itineraries"][0])
     internal = [
         leg
         for leg in itinerary["legs"]
@@ -151,7 +151,7 @@ def test_a_missing_internal_walk_duration_nulls_the_component_and_warns():
 
 
 def test_a_missing_instant_nulls_only_the_components_that_need_it():
-    itinerary = copy.deepcopy(fs.load("plan_glw_edi_coord.json")["itineraries"][0])
+    itinerary = copy.deepcopy(fs.load("synthetic_plan_glw_edi_coord.json")["itineraries"][0])
     itinerary.pop("endTime")
     itinerary["legs"][-1]["to"].pop("arrival")
     itinerary["legs"][-1].pop("endTime")
@@ -192,7 +192,7 @@ def test_a_street_only_itinerary_never_reports_transit_components_or_zero_change
 
 
 def test_duration_basis_object_has_the_documented_shape():
-    breakdown = durations.decompose_itinerary(fs.load("plan_glw_edi_coord.json")["itineraries"][0]).to_object()
+    breakdown = durations.decompose_itinerary(fs.load("synthetic_plan_glw_edi_coord.json")["itineraries"][0]).to_object()
     assert set(breakdown) == set(VECTOR_KEYS) | {"duration_basis", "warnings"}
     assert isinstance(breakdown["warnings"], list)
 
@@ -260,7 +260,7 @@ def test_the_transit_table_is_the_pinned_transit_section_not_the_request_enum():
 
 @pytest.mark.parametrize("duration", [float("nan"), float("inf"), float("-inf")])
 def test_a_non_finite_leg_duration_is_absent_not_a_crash(duration):
-    # synthetic: no recorded body carries a non-finite duration
+    # synthetic: no fixture carries a non-finite duration
     leg = {"mode": "BUS", "duration": duration}
     breakdown = durations.decompose(
         [leg], start=aware(2026, 10, 27, 9, 0), end=aware(2026, 10, 27, 9, 10)
@@ -306,7 +306,7 @@ def test_a_huge_integer_duration_is_preserved_without_a_float_conversion():
 
 
 def test_an_overnight_journey_reports_a_one_day_offset_and_overnight():
-    plan = fs.load("plan_ncl_ayr_depart.json")
+    plan = fs.load("synthetic_plan_ncl_ayr_depart.json")
     journey = plan["itineraries"][0]
     facts = durations.calendar_facts(
         aware(2026, 10, 27, 22, 55), aware(2026, 10, 28, 8, 28), "Europe/London", "Europe/London"
@@ -516,7 +516,7 @@ PLACE_KEYS = {
 
 
 def ayr_itinerary():
-    return fs.load("plan_ayr_ncl_coord.json")["itineraries"][0]
+    return fs.load("synthetic_plan_ayr_ncl_coord.json")["itineraries"][0]
 
 
 def test_the_dummy_walk_predicate_tests_the_points_not_the_geometry_object():
@@ -581,7 +581,7 @@ def test_a_dummy_walk_endpoint_never_claims_the_stop_is_cancelled():
         for place in pair
         if place["source_cancelled"] is True
     ]
-    assert suppressed, "the recorded itinerary does carry dummy-walk endpoint flags"
+    assert suppressed, "the constructed itinerary does carry dummy-walk endpoint flags"
     assert len(suppressed) == 4
     for place in suppressed:
         assert place["stop_cancelled"] is None
@@ -619,7 +619,7 @@ def test_place_zones_come_from_the_payload_or_are_unavailable():
     pairs = places.map_itinerary_places(ayr_itinerary()["legs"])
     start = pairs[0][0]
     assert start["name"] == "START"
-    assert start["zone"] == "Europe/London"          # the recorded leg places do carry tz
+    assert start["zone"] == "Europe/London"          # the fixture's leg places do carry tz
     assert start["zone_source"] == "response_place"
     ayr = pairs[0][1]
     assert ayr["zone"] == "Europe/London"
@@ -627,17 +627,17 @@ def test_place_zones_come_from_the_payload_or_are_unavailable():
     assert ayr["vertex_type"] == "TRANSIT"
     assert ayr["stop_id"] == "gb-great-britain_9100AYRR3"
     # a place the payload left without a zone is rendered as unavailable, not guessed
-    envelope_place = fs.load("plan_ams_ber.json")["from"]
+    envelope_place = fs.load("synthetic_plan_ams_ber.json")["from"]
     mapped = places.map_place(envelope_place)
     assert mapped["zone"] is None
     assert mapped["zone_source"] == "unavailable"
 
 
 def test_parent_id_is_mapped_from_a_body_that_carries_it_and_absent_otherwise():
-    stoptimes = fs.load("stoptimes_ayr_p3.json")
+    stoptimes = fs.load("synthetic_stoptimes_ayr_p3.json")
     mapped = places.map_place(stoptimes["place"])
     assert mapped["parent_id"] == "gb-great-britain_910GAYRR"
-    stop = fs.load("stop_metro_central.json")["place"]
+    stop = fs.load("synthetic_stop_metro_central.json")["place"]
     assert places.map_place(stop)["parent_id"] is None
 
 

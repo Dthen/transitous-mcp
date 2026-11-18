@@ -234,13 +234,27 @@ not the rollback anchor.
 
 Python 3.10+. Standard library only — no pip installs, no runtime dependency.
 
-Tests use pytest in a development environment only:
-`tools/dev-requirements.txt` pins `pytest>=8,<10`, and the suites are run with
-`.venv-dev`. `server.py` and `transit_core/` never import pytest.
+Tests use pytest in a development environment only. From a fresh checkout:
 
-Captured response bodies are not repository content: point
-`TRANSITOUS_TEST_FIXTURES` at an external scratch corpus before running the
-fixture-backed suites.
+```sh
+python3 -m venv .venv-dev
+.venv-dev/bin/pip install -r tools/dev-requirements.txt
+.venv-dev/bin/python -m pytest -q -p no:cacheprovider
+```
+
+`tools/dev-requirements.txt` pins `pytest>=8,<10`; `server.py` and
+`transit_core/` never import pytest. Creating the virtualenv and installing
+pytest may need the package index; running the suite itself needs no network.
+
+The regression suite is self-contained: every API-shaped body it reads is a
+small constructed JSON file under `tests/fixtures/`, labelled `synthetic` in that
+directory's manifest. No external capture corpus, environment variable or
+data-generation step is required, and the suite does not require `PYTHONPATH` or
+`PYTHONHOME` (the interpreter still honours them if they are set).
+
+The suite exercises the request and mapping contracts against those constructed
+bodies; it is **not** a live-service check. The wire-level tests use a fake
+transport and never open a socket.
 
 ## License
 

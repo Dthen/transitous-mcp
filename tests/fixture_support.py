@@ -1,40 +1,41 @@
-"""External scratch fixture loader and manifest verifier.
+"""Checked-in synthetic test bodies and their manifest verifier.
 
-Two rules this module exists to enforce:
+The suite is self-contained. Every API-shaped body it reads is a small, durable
+JSON file under ``tests/fixtures/`` that was **constructed for the tests** -- not
+captured from the live service, not a copy of a production response, and not
+derived from one. The values in those files exist to exercise the contracts in
+``tests/``; where a test asserts a numeric vector, the body encodes that vector
+directly so the assertion stays legible beside its input.
 
-1. Set TRANSITOUS_TEST_FIXTURES to the external scratch corpus directory.
-   Captured response data is deliberately not stored in the repository.
-2. Every fixture is loaded afresh from disk. A caller may mutate the returned
+Two rules this module enforces:
+
+1. There is no environment variable and no external corpus path. The fixtures
+   directory is resolved from this file's own location, so the suite behaves the
+   same whatever the working directory or host time zone is. A missing required
+   file raises ``FileNotFoundError`` naming the checked-in path; it never skips.
+2. Every fixture is read afresh from disk. A caller may mutate the returned
    object freely; no other call sees that mutation, and no module-level cache can
    turn a test into a consumer of another test's edits.
 
-The corpus path is explicit, so the suite behaves identically whatever the
-current working directory or host time zone is.
-
-Bodies above 300 KB are stored gzipped (``*.json.gz``); :func:`read_bytes` opens
-either form and returns the uncompressed logical bytes, which is what the
-manifest hashes.
+``tests/fixtures/README.md`` is the manifest: one row per file, each recording
+the kind (always ``synthetic``), the file's SHA-256 and what the body is for.
+:func:`verify_manifest` fails when the files and rows disagree, when a hash
+drifts, or when a body claims a provenance it cannot have.
 """
 
-import gzip
 import hashlib
 import json
 import os
 import re
 import sys
-from urllib.parse import parse_qs, urlsplit
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_fixture_root = os.environ.get("TRANSITOUS_TEST_FIXTURES")
-if not _fixture_root:
-    raise RuntimeError(
-        "Capture-backed tests require TRANSITOUS_TEST_FIXTURES to point to an "
-        "external scratch corpus; captured responses are not repository content."
-    )
-FIXTURES_DIR = os.path.realpath(os.path.expanduser(_fixture_root))
-if not os.path.isdir(FIXTURES_DIR):
-    raise RuntimeError("TRANSITOUS_TEST_FIXTURES is not an existing scratch corpus directory")
+REPO_ROOT = os.path.realpath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+FIXTURES_DIR = os.path.join(REPO_ROOT, "tests", "fixtures")
 MANIFEST_NAME = "README.md"
+
+MANIFEST_COLUMNS = ("fixture", "kind", "content_sha256", "purpose")
+SYNTHETIC_KIND = "synthetic"
+SYNTHETIC_PREFIX = "synthetic_"
 
 # The production package lives at the repository root. pytest inserts only the
 # test file's own directory for a non-package test tree, so put the root on the
@@ -42,44 +43,6 @@ MANIFEST_NAME = "README.md"
 # test module, whatever interpreter drives pytest.
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
-
-GZIP_THRESHOLD_BYTES = 300 * 1024
-
-#: Observed fixtures that are *derived* rather than byte-identical copies. Their
-#: manifest ``source_sha256`` describes the source package file, so it is not
-#: expected to equal the fixture's own content hash.
-DERIVED_OBSERVED = frozenset({"window_error.json"})
-
-MANIFEST_COLUMNS = (
-    "fixture",
-    "kind",
-    "source",
-    "source_sha256",
-    "captured_utc",
-    "query_direction",
-    "constraints",
-    "asserts",
-    "content_sha256",
-)
-
-#: Request parameters that *constrain* a plan/board query. A row's ``constraints``
-#: cell is checked against the URL recorded in the same row for these names only:
-#: the URL is the recorded request, so the cell may neither contradict it nor drop
-#: a constraint it carries (§8.4 provenance applies to every row). Directions,
-#: places and times are not constraint columns and are not compared here.
-CONSTRAINT_PARAMETERS = (
-    "numItineraries",
-    "maxTransfers",
-    "transitModes",
-    "arriveBy",
-    "maxPreTransitTime",
-    "maxPostTransitTime",
-    "searchWindow",
-    "n",
-)
-
-_URL_RE = re.compile(r"https?://\S+")
-_CONSTRAINT_PAIR_RE = re.compile(r"(?<![\w-])([A-Za-z][A-Za-z0-9_]*)=([^\s,;)]+)")
 
 
 def fixture_path(name):
@@ -104,11 +67,8 @@ def fixture_names():
 
 
 def read_bytes(name):
-    """Uncompressed logical bytes of a fixture, gzipped or not."""
-    raw = open(fixture_path(name), "rb").read()
-    if name.endswith(".gz"):
-        return gzip.decompress(raw)
-    return raw
+    with open(fixture_path(name), "rb") as handle:
+        return handle.read()
 
 
 def read_text(name):
@@ -129,7 +89,7 @@ def fixture_content_sha(name):
 
 
 def load_manifest(fixtures_dir=None):
-    """Parse the provenance table into a list of row dicts.
+    """Parse the manifest table into a list of row dicts.
 
     Each row is a Markdown table line whose first cell is a backticked filename.
     The parser is strict about the column count so a malformed row is a failure
@@ -150,72 +110,18 @@ def load_manifest(fixtures_dir=None):
             )
         row = dict(zip(MANIFEST_COLUMNS, cells))
         row["fixture"] = row["fixture"].strip("`").strip()
-        for key in ("source_sha256", "content_sha256"):
-            row[key] = row[key].strip("`").strip()
+        row["content_sha256"] = row["content_sha256"].strip("`").strip()
         rows.append(row)
     return rows
-
-
-def recorded_url_constraints(query_direction):
-    """Constraint parameters of the request URL recorded in a ``query_direction``.
-
-    Returns ``None`` when the cell records no URL at all — a derived or
-    constructed body has no single request to compare a constraint cell against —
-    otherwise ``{name: value}`` for the :data:`CONSTRAINT_PARAMETERS` the URL
-    carries. The last occurrence wins, matching last-supplied-wins URL semantics.
-    """
-    match = _URL_RE.search(query_direction or "")
-    if match is None:
-        return None
-    query = urlsplit(match.group(0).rstrip(".,;")).query
-    recorded = parse_qs(query, keep_blank_values=True)
-    return {name: recorded[name][-1] for name in CONSTRAINT_PARAMETERS if name in recorded}
-
-
-def stated_constraints(cell):
-    """The ``name=value`` pairs written in a manifest ``constraints`` cell."""
-    return dict(_CONSTRAINT_PAIR_RE.findall(cell or ""))
-
-
-def check_constraints(rows):
-    """Problems where a ``constraints`` cell contradicts or drops its recorded URL.
-
-    Only rows that record a URL are compared, and only for the parameters in
-    :data:`CONSTRAINT_PARAMETERS`. Prose in the cell (``deadline …``), unit
-    suffixes (``maxPreTransitTime=60 s``) and rows without a URL (derived or
-    constructed bodies) are left alone: the check polices the constraint column,
-    not the wording around it.
-    """
-    problems = []
-    for row in rows:
-        recorded = recorded_url_constraints(row.get("query_direction"))
-        if not recorded:
-            continue
-        stated = stated_constraints(row.get("constraints"))
-        for name, value in recorded.items():
-            if name not in stated:
-                problems.append(
-                    f"{row['fixture']}: constraints omits {name}={value} "
-                    f"recorded in the query_direction URL"
-                )
-            elif stated[name] != value:
-                problems.append(
-                    f"{row['fixture']}: constraints says {name}={stated[name]} "
-                    f"but the recorded URL says {name}={value}"
-                )
-    return problems
 
 
 def verify_manifest(fixtures_dir=None):
     """Return a list of integrity problems; an empty list means the manifest holds.
 
-    Checks, in the order the specification states them: every file has a row,
-    every row has a file, every row's ``content_sha256`` matches the file's
-    uncompressed bytes, the ``kind`` label agrees with the filename, observed
-    pass-through rows are byte-identical to their recorded source hash, the
-    gzip storage rule was applied by recorded size, and every ``constraints``
-    cell agrees with the request URL recorded in the same row
-    (:func:`check_constraints`).
+    Checks: every file has a row and every row a file, every row's
+    ``content_sha256`` matches the file's bytes, every row is labelled
+    ``synthetic`` and carries the ``synthetic_`` filename prefix, every row has
+    a stated purpose, and no body contains a provenance claim it cannot support.
     """
     directory = fixtures_dir or FIXTURES_DIR
     problems = []
@@ -241,37 +147,34 @@ def verify_manifest(fixtures_dir=None):
         if name not in on_disk:
             continue
         path = os.path.join(directory, name)
-        raw = open(path, "rb").read()
-        logical = gzip.decompress(raw) if name.endswith(".gz") else raw
-        actual = sha256_bytes(logical)
+        with open(path, "rb") as handle:
+            raw = handle.read()
+        actual = sha256_bytes(raw)
         if row["content_sha256"] != actual:
             problems.append(f"{name}: content_sha256 {row['content_sha256']} != {actual}")
         kind = row["kind"]
-        if kind not in ("observed", "synthetic"):
-            problems.append(f"{name}: unknown kind {kind!r}")
-        if kind == "synthetic":
-            if not name.startswith("synthetic_"):
-                problems.append(f"{name}: synthetic row lacking the synthetic_ prefix")
-            if row["source_sha256"] != "n/a":
-                problems.append(f"{name}: synthetic row must record source_sha256 n/a")
-        else:
-            if name.startswith("synthetic_"):
-                problems.append(f"{name}: observed row carries the synthetic_ prefix")
-            if name not in DERIVED_OBSERVED and row["source_sha256"] != actual:
-                problems.append(
-                    f"{name}: observed pass-through row is not byte-identical "
-                    f"(source {row['source_sha256']} != fixture {actual})"
-                )
-        if len(logical) > GZIP_THRESHOLD_BYTES and not name.endswith(".json.gz"):
-            problems.append(f"{name}: {len(logical)} bytes exceeds 300 KB but is not gzipped")
-        if name.endswith(".json.gz") and len(logical) <= GZIP_THRESHOLD_BYTES:
-            problems.append(f"{name}: gzipped although {len(logical)} bytes is under 300 KB")
-        for column in ("captured_utc", "query_direction", "constraints", "asserts", "source"):
-            if not row[column]:
-                problems.append(f"{name}: empty {column}")
-    problems.extend(check_constraints(rows))
+        if kind != SYNTHETIC_KIND:
+            problems.append(f"{name}: kind {kind!r} is not {SYNTHETIC_KIND!r}")
+        if not name.startswith(SYNTHETIC_PREFIX):
+            problems.append(f"{name}: fixture filename lacks the {SYNTHETIC_PREFIX} prefix")
+        if not row["purpose"].strip():
+            problems.append(f"{name}: empty purpose")
+        text = raw.decode("utf-8", "replace")
+        for claim in PROVENANCE_CLAIMS:
+            if claim in text.lower():
+                problems.append(f"{name}: body makes a provenance claim ({claim!r})")
     return problems
 
+
+#: Substrings that would assert real-world provenance inside a fixture body. The
+#: corpus is constructed, so a body may never describe itself as captured or
+#: observed. (The manifest's own prose is not scanned; it states the opposite.)
+PROVENANCE_CLAIMS = (
+    "captured",
+    "recorded response",
+    "live response",
+    "production response",
+)
 
 #: Token-shaped strings that must never appear in a fixture or test. Written as
 #: constants so the scan is auditable; this module is excluded from its own scan
@@ -293,17 +196,15 @@ TOKEN_PATTERNS = (
     r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}",
 )
 
-_SCANNER_FILES = frozenset({os.path.abspath(__file__)})
+_SCANNER_FILES = frozenset({os.path.realpath(__file__)})
 
 
 def scan_for_tokens(root=None):
     """Return ``(path, pattern, line_number)`` hits for token-shaped content.
 
-    Every regular file under ``tests/`` is scanned as text (fixtures are decoded
-    after decompression so a gzipped body cannot hide a hit). The scanner's own
+    Every regular file under ``tests/`` is scanned as text. The scanner's own
     module is exempt: it is the only file that contains the pattern literals.
-    Compiled bytecode caches are skipped — they are not test content, and a
-    ``.pyc`` of this module would otherwise "find" its own pattern table.
+    Compiled bytecode caches are skipped.
     """
     base = root or os.path.join(REPO_ROOT, "tests")
     hits = []
@@ -312,14 +213,11 @@ def scan_for_tokens(root=None):
         for filename in sorted(filenames):
             if filename.endswith((".pyc", ".pyo")):
                 continue
-            path = os.path.abspath(os.path.join(dirpath, filename))
+            path = os.path.realpath(os.path.join(dirpath, filename))
             if path in _SCANNER_FILES:
                 continue
             try:
-                if filename.endswith(".gz"):
-                    text = gzip.decompress(open(path, "rb").read()).decode("utf-8", "replace")
-                else:
-                    text = open(path, "rb").read().decode("utf-8", "replace")
+                text = open(path, "rb").read().decode("utf-8", "replace")
             except OSError:
                 continue
             for pattern in TOKEN_PATTERNS:
@@ -333,16 +231,12 @@ __all__ = [
     "REPO_ROOT",
     "FIXTURES_DIR",
     "MANIFEST_COLUMNS",
-    "CONSTRAINT_PARAMETERS",
     "fixture_path",
     "fixture_names",
     "read_bytes",
     "read_text",
     "load",
     "load_manifest",
-    "recorded_url_constraints",
-    "stated_constraints",
-    "check_constraints",
     "verify_manifest",
     "scan_for_tokens",
     "fixture_content_sha",

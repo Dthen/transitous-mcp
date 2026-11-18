@@ -240,7 +240,7 @@ def test_a_missing_or_blank_query_is_rejected_before_any_request(wire, query):
 
 
 def test_the_query_is_trimmed_on_the_wire(wire):
-    wire.respond(fs.load("geocode_ayr.json"))
+    wire.respond(fs.load("synthetic_geocode_ayr.json"))
     geocode.geocode("   Ayr   ")
     assert wire.query()["text"] == ["Ayr"]
     assert len(wire.query()["text"]) == 1
@@ -395,7 +395,7 @@ def test_an_unusable_language_is_rejected_before_any_request(wire, language):
 
 
 def test_geocode_issues_exactly_one_request_and_never_an_enrichment_request(wire):
-    wire.respond(fs.load("geocode_newcastle_central_station.json"))
+    wire.respond(fs.load("synthetic_geocode_newcastle_central_station.json"))
     geocode.geocode("Newcastle Central station", num_results=10)
     assert len(wire.requests) == 1
     assert wire.path() == "/api/v1/geocode"
@@ -420,7 +420,7 @@ def test_every_supplied_filter_appears_once_in_one_request(wire):
     assert wire.query()["numResults"] == ["5"]
 
 
-# ── geocode: capture-backed success mapping ─────────────────────────
+# ── geocode: fixture-backed success mapping ─────────────────────────
 
 
 def test_the_effective_query_echo_agrees_with_the_assembled_url(wire):
@@ -441,8 +441,8 @@ def test_the_effective_query_echo_agrees_with_the_assembled_url(wire):
 
 
 def test_a_recorded_unqualified_query_reports_the_payload_ranking_honestly(wire):
-    """The capture ranks a SUBWAY/BUS stop above every rail-ish stop; say so."""
-    payload = fs.load("geocode_newcastle_central_station.json")
+    """The fixture ranks a SUBWAY/BUS stop above every rail-ish stop; say so."""
+    payload = fs.load("synthetic_geocode_newcastle_central_station.json")
     wire.respond(payload)
     result = geocode.geocode("Newcastle Central station")
     assert_ok(result)
@@ -453,11 +453,11 @@ def test_a_recorded_unqualified_query_reports_the_payload_ranking_honestly(wire)
         index for index, match in enumerate(result["results"])
         if match["match_type"] == "STOP" and "REGIONAL_RAIL" in (match["modes"] or [])
     )
-    assert first_rail_ish > 0, "the capture ranks the rail stop above the subway stop; re-read it"
+    assert first_rail_ish > 0, "the fixture ranks the rail stop above the subway stop; re-read it"
 
 
 def test_stop_identity_is_the_planner_stop_id(wire):
-    wire.respond(fs.load("geocode_newcastle_central_station.json"))
+    wire.respond(fs.load("synthetic_geocode_newcastle_central_station.json"))
     top = geocode.geocode("Newcastle Central station")["results"][0]
     assert top["match_type"] == "STOP"
     assert top["match_id"] == "gb-great-britain_940GZZTWCST"
@@ -465,17 +465,17 @@ def test_stop_identity_is_the_planner_stop_id(wire):
 
 
 def test_place_and_address_matches_carry_no_stop_id(wire):
-    wire.respond(fs.load("geocode_manchester_piccadilly_station.json"))
+    wire.respond(fs.load("synthetic_geocode_manchester_piccadilly_station.json"))
     results = geocode.geocode("Manchester Piccadilly Station")["results"]
     non_stops = [match for match in results if match["match_type"] != "STOP"]
-    assert non_stops, "the capture is expected to contain PLACE and ADDRESS matches"
+    assert non_stops, "the fixture is expected to contain PLACE and ADDRESS matches"
     for match in non_stops:
         assert match["stop_id"] is None, match
         assert isinstance(match["match_id"], str)
 
 
 def test_an_address_identifier_is_never_a_stop_identifier(wire):
-    payload = fs.load("geocode_manchester_piccadilly_station.json")
+    payload = fs.load("synthetic_geocode_manchester_piccadilly_station.json")
     addresses = [match for match in payload if match["type"] == "ADDRESS"]
     assert addresses and addresses[0]["id"] == ""
     wire.respond(payload)
@@ -496,7 +496,7 @@ def test_identity_keys_on_the_match_type_not_on_the_shape_of_the_identifier(wire
 
 
 def test_every_match_carries_exactly_the_approved_field_set(wire):
-    wire.respond(fs.load("geocode_ayr.json"))
+    wire.respond(fs.load("synthetic_geocode_ayr.json"))
     for match in geocode.geocode("Ayr")["results"]:
         assert tuple(match) == geocode.GEOCODE_MATCH_FIELDS
         assert "parent_id" not in match
@@ -504,13 +504,13 @@ def test_every_match_carries_exactly_the_approved_field_set(wire):
 
 
 def test_no_geocode_result_carries_parent_grouping(wire):
-    wire.respond(fs.load("geocode_newcastle_central_station.json"))
+    wire.respond(fs.load("synthetic_geocode_newcastle_central_station.json"))
     result = geocode.geocode("Newcastle Central station")
     assert "parent_id" not in json.dumps(result["results"])
 
 
 def test_metadata_fields_are_copied_from_the_payload(wire):
-    payload = fs.load("geocode_ayr.json")
+    payload = fs.load("synthetic_geocode_ayr.json")
     wire.respond(payload)
     results = geocode.geocode("Ayr")["results"]
     place = next(match for match in results if match["match_type"] == "PLACE")
@@ -528,7 +528,7 @@ def test_metadata_fields_are_copied_from_the_payload(wire):
 
 
 def test_zero_and_empty_values_are_preserved_rather_than_nulled(wire):
-    payload = fs.load("geocode_manchester_piccadilly_station.json")
+    payload = fs.load("synthetic_geocode_manchester_piccadilly_station.json")
     wire.respond(payload)
     results = geocode.geocode("Manchester Piccadilly Station")["results"]
     zero_importance = next(
@@ -545,11 +545,11 @@ def test_zero_and_empty_values_are_preserved_rather_than_nulled(wire):
 def test_a_single_result_request_is_not_a_disambiguation_strategy(wire):
     """The first rank for the qualified query is a bus stop, not the rail station.
 
-    The stub returns the whole recorded body whatever ``numResults`` says, so this
+    The stub returns the whole fixture body whatever ``numResults`` says, so this
     checks what the request would rank first — the count itself is the upstream's
     job — and that the rail stop is a different identifier, further down.
     """
-    payload = fs.load("geocode_manchester_piccadilly_station.json")
+    payload = fs.load("synthetic_geocode_manchester_piccadilly_station.json")
     wire.respond(payload)
     single = geocode.geocode("Manchester Piccadilly Station", num_results=1)
     assert wire.query()["numResults"] == ["1"]
@@ -560,13 +560,13 @@ def test_a_single_result_request_is_not_a_disambiguation_strategy(wire):
         match for match in single["results"]
         if "REGIONAL_RAIL" in (match["modes"] or [])
     ]
-    assert rail_ish, "the capture is expected to contain a rail stop"
+    assert rail_ish, "the fixture is expected to contain a rail stop"
     assert rail_ish[0]["match_id"] != top["match_id"]
     assert len(wire.requests) == 1
 
 
 def test_a_mode_filter_is_what_promotes_the_mainline_stop(wire):
-    wire.respond(fs.load("geocode_man_picc_rrail.json"))
+    wire.respond(fs.load("synthetic_geocode_man_picc_rrail.json"))
     result = geocode.geocode("Manchester Piccadilly Station", types=["STOP"], modes=["REGIONAL_RAIL"])
     assert wire.query()["mode"] == ["REGIONAL_RAIL"]
     assert wire.query()["type"] == ["STOP"]
@@ -577,13 +577,13 @@ def test_a_mode_filter_is_what_promotes_the_mainline_stop(wire):
 def test_a_stop_type_filter_reaches_the_wire_and_the_body_is_passed_through(wire):
     """The filter is forwarded; the returned body is mapped, not re-filtered.
 
-    The recorded body here is already all STOPs, so the assertion below holds
+    The fixture body here is already all STOPs, so the assertion below holds
     whether or not anything filters: it pins the request and the identity mapping,
     not a server-side or client-side enforcement guarantee.
     ``test_a_mixed_synthetic_body_is_passed_through_under_a_stop_type_filter`` is
     the case that distinguishes the two.
     """
-    wire.respond(fs.load("geocode_newcastle_stop_rail.json"))
+    wire.respond(fs.load("synthetic_geocode_newcastle_stop_rail.json"))
     result = geocode.geocode("Newcastle", types=["STOP"], modes=["RAIL"])
     assert all(match["match_type"] == "STOP" for match in result["results"])
     assert all(match["stop_id"] == match["match_id"] for match in result["results"])
@@ -620,7 +620,7 @@ def test_a_mixed_synthetic_body_is_passed_through_under_a_stop_type_filter(wire)
 
 
 def test_near_biases_the_ranking_and_filters_nothing(wire):
-    payload = fs.load("geocode_ayr.json")
+    payload = fs.load("synthetic_geocode_ayr.json")
     wire.respond(payload)
     biased = geocode.geocode("Ayr", near=[55.458, -4.626], near_bias=1)
     wire.respond(payload)
@@ -628,7 +628,7 @@ def test_near_biases_the_ranking_and_filters_nothing(wire):
     assert biased["count"] == unbiased["count"] == len(payload)
     assert biased["results"] == unbiased["results"]
     far_away = [match for match in biased["results"] if match["country"] == "AU"]
-    assert far_away, "the capture contains a distant namesake; a bias must not filter it out"
+    assert far_away, "the fixture contains a distant namesake; a bias must not filter it out"
     assert "distance_m" not in biased["results"][0]
 
 
@@ -644,7 +644,7 @@ def test_a_non_array_geocode_body_is_malformed_not_an_empty_success(wire, body):
 
 
 def test_a_mixed_array_with_a_non_object_member_is_malformed(wire):
-    wire.respond([fs.load("geocode_ayr.json")[0], "not a match"])
+    wire.respond([fs.load("synthetic_geocode_ayr.json")[0], "not a match"])
     with pytest.raises(errors.ToolError) as caught:
         geocode.geocode("Ayr")
     assert_typed_failure(caught, errors.UNEXPECTED_SHAPE, errors.MALFORMED_UPSTREAM)
@@ -751,8 +751,8 @@ def test_reverse_geocode_rejects_an_unusable_num_results_before_any_request(wire
 
 
 def test_reverse_geocode_uses_the_match_identity_rule(wire):
-    """No reverse-geocode capture exists, so the recorded Match container is reused."""
-    payload = fs.load("geocode_newcastle_central_station.json")
+    """No reverse-geocode fixture exists, so the constructed Match container is reused."""
+    payload = fs.load("synthetic_geocode_newcastle_central_station.json")
     wire.respond(payload)
     result = geocode.reverse_geocode(54.969116, -1.6161327)
     assert_ok(result)
@@ -962,7 +962,7 @@ def test_no_enrichment_request_is_made_and_no_parent_is_invented(wire):
 
 def test_the_recorded_stop_place_reports_its_metadata_and_no_parent(wire):
     """``/api/v6/stop`` returns a pinned ``Place``; this one genuinely has no parentId."""
-    place = fs.load("stop_metro_central.json")["place"]
+    place = fs.load("synthetic_stop_metro_central.json")["place"]
     assert "parentId" not in place
     wire.respond([place])
     stop = geocode.nearby_stops(54.969116, -1.6161327)["stops"][0]

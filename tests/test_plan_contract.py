@@ -6,9 +6,9 @@ records every URL, so a test can assert both *what* was sent and *how many*
 requests were issued (the plan request itself, or a single zone-discovery
 request).
 
-Recorded corpus data is scratch data outside the checkout; the loader enforces
-``TRANSITOUS_TEST_FIXTURES``. Small in-memory bodies are labelled as such in the
-test that builds them.
+Example bodies are the checked-in constructed fixtures under ``tests/fixtures``
+(loaded by ``fixture_support``); small in-memory bodies are labelled as such in
+the test that builds them.
 """
 
 import json
@@ -511,7 +511,7 @@ def test_unknown_timezone_arguments_are_caller_errors(name):
 
 
 def test_explicit_instant_is_preserved_and_needs_no_discovery():
-    transport = plan_transport("plan_ayr_ncl_coord.json")
+    transport = plan_transport("synthetic_plan_ayr_ncl_coord.json")
     result, _ = call(AYR_NCL_COORD, transport=transport)
     frame = result["time_frame"]
     assert frame["form"] == "instant"
@@ -662,7 +662,7 @@ def test_arrive_by_reads_the_destination_zone_for_a_naive_deadline():
     transport = (
         Transport()
         .add("/api/v6/stop", destination_stop)
-        .add("/api/v6/plan", fixture_bytes("plan_ayr_ncl_arriveby.json"))
+        .add("/api/v6/plan", fixture_bytes("synthetic_plan_ayr_ncl_arriveby.json"))
     )
     result, _ = call(args, transport=transport)
     frame = result["time_frame"]
@@ -773,7 +773,7 @@ def test_caller_timezone_is_never_a_disagreement():
 
 
 def test_echo_has_exactly_the_documented_fields():
-    transport = plan_transport("plan_ayr_ncl_coord.json")
+    transport = plan_transport("synthetic_plan_ayr_ncl_coord.json")
     result, _ = call(AYR_NCL_COORD, transport=transport)
     assert set(result) == {
         "outcome",
@@ -790,7 +790,7 @@ def test_echo_has_exactly_the_documented_fields():
 
 
 def test_echo_reports_counts_window_and_cursors():
-    transport = plan_transport("plan_ayr_ncl_coord.json")
+    transport = plan_transport("synthetic_plan_ayr_ncl_coord.json")
     result, _ = call(dict(AYR_NCL_COORD, search_window_seconds=1200), transport=transport)
     query = result["query"]
     assert query["control"] == "depart_after"
@@ -831,7 +831,7 @@ def test_requested_and_effective_instant_are_both_timestamp_objects():
 
 
 def test_no_default_wrapper_slice_returns_every_upstream_itinerary():
-    transport = plan_transport("plan_ayr_ncl_coord.json")
+    transport = plan_transport("synthetic_plan_ayr_ncl_coord.json")
     result, _ = call(AYR_NCL_COORD, transport=transport)
     assert len(result["itineraries"]) == 5
     assert result["query"]["returned_count"] == 5
@@ -839,7 +839,7 @@ def test_no_default_wrapper_slice_returns_every_upstream_itinerary():
 
 
 def test_max_results_is_the_only_wrapper_cap():
-    transport = plan_transport("plan_ayr_ncl_coord.json")
+    transport = plan_transport("synthetic_plan_ayr_ncl_coord.json")
     args = dict(AYR_NCL_COORD, max_results=2)
     result, _ = call(args, transport=transport)
     query = result["query"]
@@ -856,7 +856,7 @@ def test_max_results_is_the_only_wrapper_cap():
 
 
 def test_truncated_is_not_inferred_from_equality():
-    transport = plan_transport("plan_ayr_ncl_coord.json")
+    transport = plan_transport("synthetic_plan_ayr_ncl_coord.json")
     result, _ = call(dict(AYR_NCL_COORD, max_results=5), transport=transport)
     assert result["query"]["truncated"] is False
     assert result["query"]["truncation_reason"] == "none"
@@ -865,8 +865,8 @@ def test_truncated_is_not_inferred_from_equality():
 
 
 def test_truncation_keeps_upstream_order():
-    upstream = fixture_support.load("plan_ayr_ncl_coord.json")
-    transport = plan_transport("plan_ayr_ncl_coord.json")
+    upstream = fixture_support.load("synthetic_plan_ayr_ncl_coord.json")
+    transport = plan_transport("synthetic_plan_ayr_ncl_coord.json")
     result, _ = call(dict(AYR_NCL_COORD, max_results=3), transport=transport)
     assert [item["itinerary_id"] for item in result["itineraries"]] == [
         itinerary["id"] for itinerary in upstream["itineraries"][:3]
@@ -874,7 +874,7 @@ def test_truncation_keeps_upstream_order():
 
 
 def test_num_itineraries_maps_to_the_upstream_minimum():
-    transport = plan_transport("plan_ayr_man_stopids_n8.json.gz")
+    transport = plan_transport("synthetic_plan_ayr_man_stopids_n8.json")
     args = {
         "from_stop_id": "gb-great-britain_910GAYRR",
         "to_stop_id": "gb-great-britain_910GMNCRPIC",
@@ -893,7 +893,7 @@ def test_num_itineraries_maps_to_the_upstream_minimum():
 
 
 def test_max_itineraries_maps_to_the_computation_cap_and_is_not_a_result_limit():
-    transport = plan_transport("plan_ayr_ncl_coord.json")
+    transport = plan_transport("synthetic_plan_ayr_ncl_coord.json")
     result, _ = call(dict(AYR_NCL_COORD, max_itineraries=7), transport=transport)
     assert one_param(transport.plan_urls[0], "maxItineraries") == "7"
     assert result["query"]["returned_count"] == 5
@@ -901,7 +901,7 @@ def test_max_itineraries_maps_to_the_computation_cap_and_is_not_a_result_limit()
 
 
 def test_walk_caps_are_converted_to_seconds():
-    transport = plan_transport("plan_glw_ncl_walk60.json")
+    transport = plan_transport("synthetic_plan_glw_ncl_walk60.json")
     args = {
         "from_stop_id": "gb-great-britain_910GGLGC",
         "to_stop_id": "gb-great-britain_910GNWCSTLE",
@@ -958,7 +958,7 @@ def test_frozen_query_has_the_closed_canonical_field_set():
 
 
 def test_continuation_carries_both_directions_with_their_own_query():
-    transport = plan_transport("plan_ayr_ncl_coord.json")
+    transport = plan_transport("synthetic_plan_ayr_ncl_coord.json")
     result, _ = call(AYR_NCL_COORD, transport=transport)
     continuation = result["continuation"]
     assert set(continuation) == {"previous", "next"}
@@ -1003,7 +1003,7 @@ def _shift_itinerary(itinerary, seconds):
 def _page2_with_three_itineraries():
     """page2 of the synthetic pair plus one shifted itinerary (3 vs page1's 2).
 
-    Labelled in-memory extension: the retained corpus gives adjacent pages equal
+    Labelled in-memory extension: the fixture pages give adjacent pages equal
     counts, and the acceptance requirement is that a page reports *its own*
     count, so this makes the two pages genuinely different.
     """
@@ -1226,7 +1226,7 @@ def test_null_arguments_do_not_override_the_frozen_query():
 def test_a_stop_id_endpoint_restated_as_coordinates_names_from():
     first = plan.plan(
         dict(AYR_NCL_STOPIDS, time="2026-10-27T09:00:00Z"),
-        transport=plan_transport("plan_ayr_ncl_stopids_n3.json"),
+        transport=plan_transport("synthetic_plan_ayr_ncl_stopids_n3.json"),
     )
     transport = Transport().add("/api/v6/plan", minimal_body())
     result = plan.plan(
@@ -1360,7 +1360,7 @@ EMPTY_ARGS = {
 
 
 def test_a_structurally_valid_empty_result_is_no_routes():
-    transport = plan_transport("plan_empty_no_service.json")
+    transport = plan_transport("synthetic_plan_empty_no_service.json")
     result, _ = call(EMPTY_ARGS, transport=transport)
     assert result["outcome"] == "no_routes"
     assert result["no_routes_reason"] == "not_determined"
@@ -1381,14 +1381,14 @@ def test_no_constraints_supplied_means_an_empty_constraints_array():
         "to_stop_id": "gb-great-britain_910GNWCSTLE",
         "time": "2026-10-27T09:00:00Z",
     }
-    result, _ = call(args, body=fixture_support.load("plan_empty_no_service.json"))
+    result, _ = call(args, body=fixture_support.load("synthetic_plan_empty_no_service.json"))
     assert result["outcome"] == "no_routes"
     assert result["constraints_active"] == []
 
 
 def test_no_routes_without_a_cause_never_claims_the_constraint_caused_it():
     args = dict(EMPTY_ARGS, max_transfers=0)
-    transport = plan_transport("plan_empty_no_service.json")
+    transport = plan_transport("synthetic_plan_empty_no_service.json")
     result, _ = call(args, transport=transport)
     assert result["outcome"] == "no_routes"
     assert result["no_routes_reason"] == "not_determined"
@@ -1409,7 +1409,7 @@ def test_zero_endpoint_walk_caps_are_echoed_as_active_constraints():
         "max_access_walk_minutes": 0,
         "max_egress_walk_minutes": 0,
     }
-    transport = plan_transport("plan_empty_constraints.json")
+    transport = plan_transport("synthetic_plan_empty_constraints.json")
     result, _ = call(args, transport=transport)
     assert result["outcome"] == "no_routes"
     assert result["no_routes_reason"] == "not_determined"
@@ -1479,7 +1479,7 @@ def test_include_direct_false_withholds_the_direct_array():
     ],
 )
 def test_an_empty_result_that_fails_the_predicate_is_malformed(mutation, element):
-    body = fixture_support.load("plan_empty_no_service.json")
+    body = fixture_support.load("synthetic_plan_empty_no_service.json")
     mutation(body)
     transport = Transport().add("/api/v6/plan", body)
     result = plan.plan(EMPTY_ARGS, transport=transport)
@@ -1489,7 +1489,7 @@ def test_an_empty_result_that_fails_the_predicate_is_malformed(mutation, element
 
 
 def test_the_empty_result_requires_http_200_not_any_2xx():
-    body = fixture_support.load("plan_empty_no_service.json")
+    body = fixture_support.load("synthetic_plan_empty_no_service.json")
     transport = Transport().add("/api/v6/plan", body, 201)
     result = plan.plan(EMPTY_ARGS, transport=transport)
     details = assert_error(result, errors.UNEXPECTED_SHAPE)
@@ -1498,7 +1498,7 @@ def test_the_empty_result_requires_http_200_not_any_2xx():
 
 
 def test_a_non_empty_result_is_ok_not_no_routes():
-    transport = plan_transport("plan_ayr_ncl_coord.json")
+    transport = plan_transport("synthetic_plan_ayr_ncl_coord.json")
     result, _ = call(AYR_NCL_COORD, transport=transport)
     assert result["outcome"] == "ok"
     assert "no_routes_reason" not in result
@@ -1508,7 +1508,7 @@ def test_a_non_empty_result_is_ok_not_no_routes():
 
 
 def test_window_error_is_out_of_range_with_the_window():
-    recorded = fixture_support.load("window_error.json")
+    recorded = fixture_support.load("synthetic_window_error.json")
     entry = recorded["entries"][0]
     assert entry["status"] == 400
     transport = Transport().add("/api/v6/plan", entry["body"].encode(), 400)

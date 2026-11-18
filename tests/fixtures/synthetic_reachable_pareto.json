@@ -1,0 +1,43 @@
+{
+  "one": {
+    "name": "Ayr",
+    "stopId": "gb-great-britain_9100AYRR3",
+    "lat": 55.458267,
+    "lon": -4.625827,
+    "tz": "Europe/London",
+    "vertexType": "TRANSIT"
+  },
+  "all": [
+    {
+      "place": {
+        "name": "Glasgow Central",
+        "stopId": "gb-great-britain_9100GLGC",
+        "lat": 55.858315,
+        "lon": -4.258436,
+        "tz": "Europe/London"
+      },
+      "duration": 3060,
+      "k": 1
+    },
+    {
+      "place": {
+        "name": "Edinburgh Waverley",
+        "stopId": "gb-great-britain_9100EDINW",
+        "lat": 55.9527965,
+        "lon": -3.1877235,
+        "tz": "Europe/London"
+      },
+      "duration": 2400,
+      "k": 2
+    },
+    {
+      "place": {
+        "name": "Prestwick",
+        "stopId": "gb-great-britain_9100PRSTWCK",
+        "lat": 55.5016,
+        "lon": -4.6142,
+        "tz": "Europe/London"
+      }
+    }
+  ]
+}

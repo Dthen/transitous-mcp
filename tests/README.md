@@ -1,36 +1,60 @@
-# Transitous foundation tests
+# Transitous regression tests
 
-Application code and loaders live here; **captured response bodies do not**. The
-corpus is scratch data kept outside the checkout (see amendment 02 of the T1
-implementation plan), so the suite must be told where it is.
+The suite is self-contained: application code and test loaders live here, and so
+do the **constructed** example bodies it reads (`fixtures/`). There is no capture
+corpus, no external data path and no network access.
 
 ## Running
 
+From a fresh checkout, create the development environment once:
+
 ```sh
-TRANSITOUS_TEST_FIXTURES="$TRANSITOUS_TEST_FIXTURES" \
-PYTHONDONTWRITEBYTECODE=1 .venv-dev/bin/python -m pytest -q -p no:cacheprovider
+python3 -m venv .venv-dev
+.venv-dev/bin/pip install -r tools/dev-requirements.txt
 ```
 
-`TRANSITOUS_TEST_FIXTURES` must point at the directory holding the response
-bodies plus their provenance manifest (`README.md`, one row per file). Point it
-at your own scratch copy; no capture path is baked into this tree.
+Installing pytest may need the package index. Then run the tests, which
+themselves are offline:
 
-If the variable is unset, or the directory does not exist, collection stops with
-an explicit error naming `TRANSITOUS_TEST_FIXTURES` — the suite never skips
-quietly or falls back to a repository copy, because a green run must mean the
-captures were actually read.
+```sh
+.venv-dev/bin/python -m pytest -q -p no:cacheprovider
+```
 
-## What is in here
+`tools/dev-requirements.txt` pins the only test dependency. The suite does not
+read `TRANSITOUS_TEST_FIXTURES` and does not require `PYTHONPATH` or
+`PYTHONHOME`; the interpreter still honours those variables if they are set, but
+no value is needed for a green run. It also needs no setup or data-generation
+step. A missing required fixture fails loudly with its checked-in path rather
+than skipping.
+
+## What the inputs are
+
+`fixtures/` holds small JSON documents shaped like the pinned API responses. They
+were **constructed for these tests** against the documented schema; the numbers
+in them express the vectors the assertions name (for example the 14100-second
+Ayr–Newcastle itinerary). They are not captured live responses, not copies of
+production responses and not derived from one. `fixtures/README.md` is the
+manifest: each file's kind (`synthetic`), SHA-256 and purpose, checked by
+`test_fixtures_integrity.py`. Every filename carries a `synthetic_` prefix so no
+body can be mistaken for a recording.
+
+Because the inputs are constructed, the suite verifies request assembly, mapping
+and failure classification against explicit examples. It is not evidence that the
+live service currently returns those shapes; live checks are out of scope.
 
 | file | role |
 | --- | --- |
-| `fixture_support.py` | external-corpus loader, manifest verifier (hashes, kind labels, gzip rule, URL-vs-constraints agreement), credential scan |
-| `test_fixtures_integrity.py` | manifest/provenance gates, loader behaviour, non-vacuity of the checker, corpus-diagnostic guards |
+| `fixture_support.py` | checked-in fixture loader (no environment, fresh object per call), manifest verifier, token scan |
+| `test_fixtures_integrity.py` | manifest coverage/hashes, synthetic-only labelling, path safety, loader isolation, non-vacuity of the checker |
 | `test_time_model.py` | §2.1–§2.3 forms, frame choice, display-zone provenance, host-zone invariance |
 | `test_zone_resolution.py` | §4.3 authority order, 500 m inference bound, request budget, zone provenance |
 | `test_dst_policy.py` | fold/gap policy, both hemispheres, no request on rejection |
 | `test_http_layer.py` | §4.2 serialisation, error taxonomy, timetable window, excerpt hygiene |
 | `test_foundation_mappers.py` | §3.1 duration vectors, calendars, place/cancellation mapping |
-
-Fixtures above 300 KB are stored gzipped (`*.json.gz`); the loader returns the
-uncompressed logical bytes, which is what the manifest hashes.
+| `test_plan_contract.py` | §4.4–§4.6 request contract, caps, cursors, continuation |
+| `test_plan_durations.py` | §3.1 decomposition vectors and conservation |
+| `test_plan_cancellations.py` | §4.13 walking-failure and cancellation attribution |
+| `test_boards.py` | §4.9–§4.11 departures, trip and map segments |
+| `test_geocode_stops.py` | §4.7–§4.8 match identity, filters, nearby stops |
+| `test_one_to_many.py` | §4.12 street, intermodal and reachable paths |
+| `test_tools_call_e2e.py` | the 13-tool JSON-RPC surface through a fake transport |

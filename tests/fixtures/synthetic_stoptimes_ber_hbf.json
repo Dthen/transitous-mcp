@@ -1,0 +1,195 @@
+{
+  "place": {
+    "name": "Berlin Hbf",
+    "stopId": "at-Railway-Current-Reference-Data-2026_de:11000:900003200:1:51",
+    "lat": 52.5251,
+    "lon": 13.3694,
+    "tz": "Europe/Berlin",
+    "vertexType": "TRANSIT"
+  },
+  "stopTimes": [
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ICE 1001",
+      "routeLongName": "Berlin Hbf to Munich Hbf",
+      "headsign": "Munich Hbf",
+      "mode": "LONG_DISTANCE",
+      "routeType": 2,
+      "agencyName": "DB Fernverkehr",
+      "tripId": "berlin-hbf-1100",
+      "place": {
+        "name": "Berlin Hbf",
+        "stopId": "at-Railway-Current-Reference-Data-2026_de:11000:900003200:1:51",
+        "tz": "Europe/Berlin",
+        "scheduledDeparture": "2026-10-21T11:11:00+02:00"
+      }
+    },
+    {
+      "realTime": true,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ICE 1002",
+      "routeLongName": "Berlin Hbf to Munich Hbf",
+      "headsign": "Munich Hbf",
+      "mode": "LONG_DISTANCE",
+      "routeType": 2,
+      "agencyName": "DB Fernverkehr",
+      "tripId": "berlin-hbf-1108",
+      "place": {
+        "name": "Berlin Hbf",
+        "stopId": "at-Railway-Current-Reference-Data-2026_de:11000:900003200:1:51",
+        "tz": "Europe/Berlin",
+        "departure": "2026-10-21T11:11:00+02:00",
+        "scheduledDeparture": "2026-10-21T11:14:00+02:00"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ICE 1003",
+      "routeLongName": "Berlin Hbf to Munich Hbf",
+      "headsign": "Munich Hbf",
+      "mode": "LONG_DISTANCE",
+      "routeType": 2,
+      "agencyName": "DB Fernverkehr",
+      "tripId": "berlin-hbf-1120",
+      "place": {
+        "name": "Berlin Hbf",
+        "stopId": "at-Railway-Current-Reference-Data-2026_de:11000:900003200:1:51",
+        "tz": "Europe/Berlin",
+        "scheduledDeparture": "2026-10-21T11:20:00+02:00"
+      }
+    },
+    {
+      "realTime": true,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ICE 1004",
+      "routeLongName": "Berlin Hbf to Munich Hbf",
+      "headsign": "Munich Hbf",
+      "mode": "LONG_DISTANCE",
+      "routeType": 2,
+      "agencyName": "DB Fernverkehr",
+      "tripId": "berlin-hbf-1134",
+      "place": {
+        "name": "Berlin Hbf",
+        "stopId": "at-Railway-Current-Reference-Data-2026_de:11000:900003200:1:51",
+        "tz": "Europe/Berlin",
+        "departure": "2026-10-21T11:35:00+02:00",
+        "scheduledDeparture": "2026-10-21T11:34:00+02:00"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ICE 1005",
+      "routeLongName": "Berlin Hbf to Munich Hbf",
+      "headsign": "Munich Hbf",
+      "mode": "LONG_DISTANCE",
+      "routeType": 2,
+      "agencyName": "DB Fernverkehr",
+      "tripId": "berlin-hbf-1148",
+      "place": {
+        "name": "Berlin Hbf",
+        "stopId": "at-Railway-Current-Reference-Data-2026_de:11000:900003200:1:51",
+        "tz": "Europe/Berlin",
+        "scheduledDeparture": "2026-10-21T11:48:00+02:00"
+      }
+    },
+    {
+      "realTime": true,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ICE 1006",
+      "routeLongName": "Berlin Hbf to Munich Hbf",
+      "headsign": "Munich Hbf",
+      "mode": "LONG_DISTANCE",
+      "routeType": 2,
+      "agencyName": "DB Fernverkehr",
+      "tripId": "berlin-hbf-1202",
+      "place": {
+        "name": "Berlin Hbf",
+        "stopId": "at-Railway-Current-Reference-Data-2026_de:11000:900003200:1:51",
+        "tz": "Europe/Berlin",
+        "departure": "2026-10-21T12:03:00+02:00",
+        "scheduledDeparture": "2026-10-21T12:02:00+02:00"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ICE 1007",
+      "routeLongName": "Berlin Hbf to Munich Hbf",
+      "headsign": "Munich Hbf",
+      "mode": "LONG_DISTANCE",
+      "routeType": 2,
+      "agencyName": "DB Fernverkehr",
+      "tripId": "berlin-hbf-1216",
+      "place": {
+        "name": "Berlin Hbf",
+        "stopId": "at-Railway-Current-Reference-Data-2026_de:11000:900003200:1:51",
+        "tz": "Europe/Berlin",
+        "scheduledDeparture": "2026-10-21T12:16:00+02:00"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ICE 1008",
+      "routeLongName": "Berlin Hbf to Munich Hbf",
+      "headsign": "Munich Hbf",
+      "mode": "LONG_DISTANCE",
+      "routeType": 2,
+      "agencyName": "DB Fernverkehr",
+      "tripId": "berlin-hbf-1230",
+      "place": {
+        "name": "Berlin Hbf",
+        "stopId": "at-Railway-Current-Reference-Data-2026_de:11000:900003200:1:51",
+        "tz": "Europe/Berlin",
+        "scheduledDeparture": "2026-10-21T12:30:00+02:00"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ICE 1009",
+      "routeLongName": "Berlin Hbf to Munich Hbf",
+      "headsign": "Munich Hbf",
+      "mode": "LONG_DISTANCE",
+      "routeType": 2,
+      "agencyName": "DB Fernverkehr",
+      "tripId": "berlin-hbf-1244",
+      "place": {
+        "name": "Berlin Hbf",
+        "stopId": "at-Railway-Current-Reference-Data-2026_de:11000:900003200:1:51",
+        "tz": "Europe/Berlin",
+        "scheduledDeparture": "2026-10-21T12:44:00+02:00"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ICE 1010",
+      "routeLongName": "Berlin Hbf to Munich Hbf",
+      "headsign": "Munich Hbf",
+      "mode": "LONG_DISTANCE",
+      "routeType": 2,
+      "agencyName": "DB Fernverkehr",
+      "tripId": "berlin-hbf-1258",
+      "place": {
+        "name": "Berlin Hbf",
+        "stopId": "at-Railway-Current-Reference-Data-2026_de:11000:900003200:1:51",
+        "tz": "Europe/Berlin",
+        "scheduledDeparture": "2026-10-21T12:58:00+02:00"
+      }
+    }
+  ]
+}

@@ -1,0 +1,374 @@
+{
+  "place": {
+    "name": "Ayr",
+    "stopId": "gb-great-britain_9100AYRR3",
+    "parentId": "gb-great-britain_910GAYRR",
+    "lat": 55.45814,
+    "lon": -4.6258755,
+    "tz": "Europe/London",
+    "vertexType": "TRANSIT"
+  },
+  "stopTimes": [
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_09:05_scotrail-ayr-1",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "parentId": "gb-great-britain_910GAYRR",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T09:05:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_09:20_scotrail-ayr-2",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T09:20:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_09:35_scotrail-ayr-3",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T09:35:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_09:50_scotrail-ayr-4",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T09:50:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_10:05_scotrail-ayr-5",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T10:05:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_10:20_scotrail-ayr-6",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T10:20:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_10:35_scotrail-ayr-7",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T10:35:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_10:50_scotrail-ayr-8",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T10:50:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_11:05_scotrail-ayr-9",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T11:05:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_11:20_scotrail-ayr-10",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T11:20:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_11:35_scotrail-ayr-11",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T11:35:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_11:50_scotrail-ayr-12",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T11:50:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_12:05_scotrail-ayr-13",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T12:05:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_12:20_scotrail-ayr-14",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T12:20:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_12:35_scotrail-ayr-15",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T12:35:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_12:50_scotrail-ayr-16",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T12:50:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_13:05_scotrail-ayr-17",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T13:05:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_13:20_scotrail-ayr-18",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T13:20:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_13:35_scotrail-ayr-19",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T13:35:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "routeLongName": "Ayrshire Coast Line",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "20261027_13:50_scotrail-ayr-20",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T13:50:00Z"
+      }
+    }
+  ]
+}

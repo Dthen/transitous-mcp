@@ -1,0 +1,35 @@
+{
+  "requestParameters": {},
+  "debugOutput": {},
+  "from": { "name": "START", "lat": 52.5251, "lon": 13.3694 },
+  "to": { "name": "END", "lat": 48.1402, "lon": 11.5587 },
+  "direct": [],
+  "itineraries": [
+    {
+      "id": "synthetic-ber-muc-1",
+      "duration": 14400,
+      "startTime": "2026-10-27T09:00:00Z",
+      "endTime": "2026-10-27T13:00:00Z",
+      "transfers": 0,
+      "legs": [
+        { "mode": "WALK", "startTime": "2026-10-27T09:00:00Z", "endTime": "2026-10-27T09:05:00Z", "scheduled": true, "duration": 300, "from": { "name": "START", "lat": 52.5251, "lon": 13.3694, "tz": "Europe/Berlin" }, "to": { "name": "Berlin Hbf", "stopId": "de-berlin-hbf", "lat": 52.5251, "lon": 13.3694, "tz": "Europe/Berlin" }, "legGeometry": { "points": "synthetic-ber-muc-access", "precision": 6, "length": 2 } },
+        { "mode": "HIGHSPEED_RAIL", "startTime": "2026-10-27T09:10:00Z", "endTime": "2026-10-27T12:55:00Z", "scheduled": true, "duration": 13500, "routeShortName": "ICE", "headsign": "Munich Hbf", "from": { "name": "Berlin Hbf", "stopId": "de-berlin-hbf", "lat": 52.5251, "lon": 13.3694, "tz": "Europe/Berlin" }, "to": { "name": "Munich Hbf", "stopId": "de-munich-hbf", "lat": 48.1402, "lon": 11.5587, "tz": "Europe/Berlin" }, "legGeometry": { "points": "synthetic-ber-muc-rail", "precision": 6, "length": 500 } },
+        { "mode": "WALK", "startTime": "2026-10-27T12:55:00Z", "endTime": "2026-10-27T13:00:00Z", "scheduled": true, "duration": 300, "from": { "name": "Munich Hbf", "stopId": "de-munich-hbf", "lat": 48.1402, "lon": 11.5587, "tz": "Europe/Berlin" }, "to": { "name": "END", "lat": 48.1402, "lon": 11.5587, "tz": "Europe/Berlin" }, "legGeometry": { "points": "synthetic-ber-muc-egress", "precision": 6, "length": 2 } }
+      ]
+    },
+    {
+      "id": "synthetic-ber-muc-2",
+      "duration": 15120,
+      "startTime": "2026-10-27T10:00:00Z",
+      "endTime": "2026-10-27T14:12:00Z",
+      "transfers": 0,
+      "legs": [
+        { "mode": "WALK", "startTime": "2026-10-27T10:00:00Z", "endTime": "2026-10-27T10:06:00Z", "scheduled": true, "duration": 360, "from": { "name": "START", "lat": 52.5251, "lon": 13.3694, "tz": "Europe/Berlin" }, "to": { "name": "Berlin Hbf", "stopId": "de-berlin-hbf", "lat": 52.5251, "lon": 13.3694, "tz": "Europe/Berlin" }, "legGeometry": { "points": "synthetic-ber-muc-2-access", "precision": 6, "length": 2 } },
+        { "mode": "HIGHSPEED_RAIL", "startTime": "2026-10-27T10:12:00Z", "endTime": "2026-10-27T14:06:00Z", "scheduled": true, "duration": 14040, "routeShortName": "ICE", "headsign": "Munich Hbf", "from": { "name": "Berlin Hbf", "stopId": "de-berlin-hbf", "lat": 52.5251, "lon": 13.3694, "tz": "Europe/Berlin" }, "to": { "name": "Munich Hbf", "stopId": "de-munich-hbf", "lat": 48.1402, "lon": 11.5587, "tz": "Europe/Berlin" }, "legGeometry": { "points": "synthetic-ber-muc-2-rail", "precision": 6, "length": 500 } },
+        { "mode": "WALK", "startTime": "2026-10-27T14:06:00Z", "endTime": "2026-10-27T14:12:00Z", "scheduled": true, "duration": 360, "from": { "name": "Munich Hbf", "stopId": "de-munich-hbf", "lat": 48.1402, "lon": 11.5587, "tz": "Europe/Berlin" }, "to": { "name": "END", "lat": 48.1402, "lon": 11.5587, "tz": "Europe/Berlin" }, "legGeometry": { "points": "synthetic-ber-muc-2-egress", "precision": 6, "length": 2 } }
+      ]
+    }
+  ],
+  "previousPageCursor": null,
+  "nextPageCursor": null
+}

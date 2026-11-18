@@ -1,0 +1,66 @@
+{
+  "place": {
+    "name": "Ayr",
+    "stopId": "gb-great-britain_9100AYRR3",
+    "parentId": "gb-great-britain_910GAYRR",
+    "lat": 55.45814,
+    "lon": -4.6258755,
+    "tz": "Europe/London",
+    "vertexType": "TRANSIT"
+  },
+  "stopTimes": [
+    {
+      "realTime": true,
+      "cancelled": true,
+      "tripCancelled": true,
+      "routeShortName": "ScotRail",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "synthetic-cancelled-trip-1",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "departure": "2026-10-27T09:05:00Z",
+        "scheduledDeparture": "2026-10-27T09:05:00Z"
+      }
+    },
+    {
+      "realTime": true,
+      "cancelled": true,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "synthetic-running-trip-2",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "departure": "2026-10-27T09:20:00Z",
+        "scheduledDeparture": "2026-10-27T09:20:00Z"
+      }
+    },
+    {
+      "realTime": false,
+      "cancelled": false,
+      "tripCancelled": false,
+      "routeShortName": "ScotRail",
+      "headsign": "Glasgow Central",
+      "mode": "REGIONAL_RAIL",
+      "routeType": 2,
+      "agencyName": "ScotRail",
+      "tripId": "synthetic-running-trip-3",
+      "place": {
+        "name": "Ayr",
+        "stopId": "gb-great-britain_9100AYRR3",
+        "tz": "Europe/London",
+        "scheduledDeparture": "2026-10-27T09:35:00Z"
+      }
+    }
+  ]
+}

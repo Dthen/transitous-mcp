@@ -87,7 +87,7 @@ def codes(result):
 
 
 def test_both_dummy_walks_are_labelled_as_estimates():
-    result = run(AYR_NCL_COORD, fixture="plan_ayr_ncl_coord.json")
+    result = run(AYR_NCL_COORD, fixture="synthetic_plan_ayr_ncl_coord.json")
     legs = first(result)["legs"]
     assert legs[0]["mode"] == "WALK" and legs[0]["walking_route_unavailable"] is True
     assert legs[0]["duration_is_estimate"] is True
@@ -101,7 +101,7 @@ def test_both_dummy_walks_are_labelled_as_estimates():
 
 
 def test_a_routed_street_leg_is_not_a_dummy_walk():
-    result = run(AYR_NCL_COORD, fixture="plan_ayr_ncl_coord.json")
+    result = run(AYR_NCL_COORD, fixture="synthetic_plan_ayr_ncl_coord.json")
     legs = first(result)["legs"]
     routed = legs[4]
     assert routed["mode"] == "WALK"
@@ -113,7 +113,7 @@ def test_a_routed_street_leg_is_not_a_dummy_walk():
 
 
 def test_transit_legs_never_report_a_walking_failure():
-    result = run(AYR_NCL_COORD, fixture="plan_ayr_ncl_coord.json")
+    result = run(AYR_NCL_COORD, fixture="synthetic_plan_ayr_ncl_coord.json")
     for leg in first(result)["legs"]:
         if leg["mode"] != "WALK":
             assert leg["walking_route_unavailable"] is False
@@ -125,14 +125,14 @@ def test_transit_legs_never_report_a_walking_failure():
 
 
 def test_no_place_in_a_dummy_walk_itinerary_is_reported_as_a_cancelled_stop():
-    result = run(AYR_NCL_COORD, fixture="plan_ayr_ncl_coord.json")
+    result = run(AYR_NCL_COORD, fixture="synthetic_plan_ayr_ncl_coord.json")
     for itinerary in result["itineraries"]:
         for index, side, place in every_place(itinerary):
             assert place["stop_cancelled"] is not True, (itinerary["option"], index, side, place)
 
 
 def test_dummy_endpoints_keep_their_raw_flag_and_provenance():
-    result = run(AYR_NCL_COORD, fixture="plan_ayr_ncl_coord.json")
+    result = run(AYR_NCL_COORD, fixture="synthetic_plan_ayr_ncl_coord.json")
     itinerary = first(result)
     ayr = itinerary["legs"][0]["to"]
     assert ayr["name"] == "Ayr"
@@ -145,9 +145,9 @@ def test_dummy_endpoints_keep_their_raw_flag_and_provenance():
 
 
 def test_an_explicitly_uncancelled_place_stays_false():
-    result = run(AYR_NCL_COORD, fixture="plan_ayr_ncl_coord.json")
+    result = run(AYR_NCL_COORD, fixture="synthetic_plan_ayr_ncl_coord.json")
     itinerary = first(result)
-    # Ayr appears both ways in the recorded itinerary: flagged by the dummy walk,
+    # Ayr appears both ways in the fixture itinerary: flagged by the dummy walk,
     # and explicitly not cancelled as the origin of the first service leg.
     assert itinerary["legs"][0]["to"]["stop_cancelled"] is None
     assert itinerary["legs"][1]["from"]["stop_cancelled"] is False
@@ -158,12 +158,12 @@ def test_an_explicitly_uncancelled_place_stays_false():
 def test_a_cancelled_place_elsewhere_on_a_dummy_route_is_not_blamed_on_the_service():
     """The discriminating case for whole-itinerary attribution.
 
-    Labelled in-memory mutation of the recorded body: the Glasgow Central place of
+    Labelled in-memory mutation of the fixture body: the Glasgow Central place of
     a *service* leg carries ``cancelled: true``, and the same place is an endpoint of
     the itinerary's dummy walk. Per-leg attribution would report ``service`` here;
     the itinerary-wide rule reports the walking failure instead.
     """
-    body = fixture_support.load("plan_ayr_ncl_coord.json")
+    body = fixture_support.load("synthetic_plan_ayr_ncl_coord.json")
     itinerary = body["itineraries"][0]
     service_leg = itinerary["legs"][3]
     assert service_leg["mode"] == "REGIONAL_RAIL"
@@ -180,7 +180,7 @@ def test_a_cancelled_place_elsewhere_on_a_dummy_route_is_not_blamed_on_the_servi
 
 
 def test_a_dummy_walk_endpoint_does_not_cancel_the_other_legs_places():
-    body = fixture_support.load("plan_ayr_ncl_coord.json")
+    body = fixture_support.load("synthetic_plan_ayr_ncl_coord.json")
     itinerary = body["itineraries"][0]
     itinerary["legs"][5]["to"]["cancelled"] = True  # Newcastle, not a dummy endpoint
     result = run(dict(AYR_NCL_COORD), body=body)
@@ -191,11 +191,11 @@ def test_a_dummy_walk_endpoint_does_not_cancel_the_other_legs_places():
 
 
 def test_the_reverse_overnight_itinerary_has_no_false_service_cancellation():
-    result = run(NCL_AYR, fixture="plan_ncl_ayr_depart.json")
+    result = run(NCL_AYR, fixture="synthetic_plan_ncl_ayr_depart.json")
     for itinerary in result["itineraries"]:
         for index, side, place in every_place(itinerary):
             if place["stop_cancelled"] is True:
-                # only a genuinely service-cancelled place may say so; this capture
+                # only a genuinely service-cancelled place may say so; this fixture
                 # contains none, so any True is a mapping defect
                 raise AssertionError((itinerary["option"], index, side, place))
     itinerary = first(result)
@@ -215,7 +215,7 @@ def test_the_reverse_overnight_itinerary_has_no_false_service_cancellation():
 
 
 def test_place_tri_state_exactly_mirrors_the_payload():
-    result = run(AYR_NCL_COORD, fixture="plan_ayr_ncl_coord.json")
+    result = run(AYR_NCL_COORD, fixture="synthetic_plan_ayr_ncl_coord.json")
     places_by_name = {}
     for _, _, place in every_place(first(result)):
         places_by_name.setdefault(place["name"], []).append(place)
@@ -261,11 +261,11 @@ def test_the_cancelled_leg_supplies_realtime_so_no_absence_warning_is_raised():
     assert first(result)["realtime_present"] is True
 
 
-# ── realtime honesty on scheduled-only captures ───────────────────
+# ── realtime honesty on scheduled-only fixtures ───────────────────
 
 
 def test_a_scheduled_only_result_is_labelled_and_never_implies_live_data():
-    result = run(AYR_NCL_COORD, fixture="plan_ayr_ncl_coord.json")
+    result = run(AYR_NCL_COORD, fixture="synthetic_plan_ayr_ncl_coord.json")
     warning = next(w for w in result["warnings"] if w["code"] == "realtime_unavailable")
     assert set(warning) == {"code", "message", "scope"}
     assert warning["message"]
@@ -277,7 +277,7 @@ def test_a_scheduled_only_result_is_labelled_and_never_implies_live_data():
 
 
 def test_scheduled_times_are_mapped_only_when_the_payload_supplies_them():
-    body = fixture_support.load("plan_ayr_ncl_coord.json")
+    body = fixture_support.load("synthetic_plan_ayr_ncl_coord.json")
     del body["itineraries"][0]["legs"][1]["scheduledStartTime"]
     del body["itineraries"][0]["legs"][1]["scheduledEndTime"]
     result = run(dict(AYR_NCL_COORD), body=body)
@@ -288,7 +288,7 @@ def test_scheduled_times_are_mapped_only_when_the_payload_supplies_them():
 
 
 def test_warnings_carry_a_scope():
-    result = run(AYR_NCL_COORD, fixture="plan_ayr_ncl_coord.json")
+    result = run(AYR_NCL_COORD, fixture="synthetic_plan_ayr_ncl_coord.json")
     for warning in result["warnings"]:
         assert set(warning) == {"code", "message", "scope"}
         assert warning["scope"]
@@ -306,7 +306,7 @@ def test_warnings_carry_a_scope():
     ],
 )
 def test_geometry_presence_tests_the_points_string(geometry, present):
-    body = fixture_support.load("plan_ayr_ncl_coord.json")
+    body = fixture_support.load("synthetic_plan_ayr_ncl_coord.json")
     leg = body["itineraries"][0]["legs"][4]
     leg["legGeometry"] = geometry
     if "cancelled" in leg:
@@ -316,7 +316,7 @@ def test_geometry_presence_tests_the_points_string(geometry, present):
 
 
 def test_absent_geometry_is_reported_as_null():
-    body = fixture_support.load("plan_ayr_ncl_coord.json")
+    body = fixture_support.load("synthetic_plan_ayr_ncl_coord.json")
     leg = body["itineraries"][0]["legs"][4]
     del leg["legGeometry"]
     result = run(dict(AYR_NCL_COORD), body=body)
@@ -324,7 +324,7 @@ def test_absent_geometry_is_reported_as_null():
 
 
 def test_a_non_string_points_value_is_malformed_not_a_dummy_walk():
-    body = fixture_support.load("plan_ayr_ncl_coord.json")
+    body = fixture_support.load("synthetic_plan_ayr_ncl_coord.json")
     body["itineraries"][0]["legs"][0]["legGeometry"]["points"] = 5
     transport = Transport(body)
     result = plan.plan(dict(AYR_NCL_COORD), transport=transport)
@@ -333,7 +333,7 @@ def test_a_non_string_points_value_is_malformed_not_a_dummy_walk():
 
 
 def test_an_empty_geometry_object_is_not_a_routed_geometry():
-    body = fixture_support.load("plan_ayr_ncl_coord.json")
+    body = fixture_support.load("synthetic_plan_ayr_ncl_coord.json")
     leg = body["itineraries"][0]["legs"][4]
     leg["legGeometry"] = {"precision": 6}
     result = run(dict(AYR_NCL_COORD), body=body)
@@ -344,7 +344,7 @@ def test_an_empty_geometry_object_is_not_a_routed_geometry():
 
 
 def test_intermediate_stop_names_are_bounded_to_twelve_in_order():
-    body = fixture_support.load("plan_glw_ncl_direct.json")
+    body = fixture_support.load("synthetic_plan_glw_ncl_direct.json")
     leg = body["itineraries"][0]["legs"][0]
     leg["intermediateStops"] = [
         {"name": f"Stop {number}", "lat": 0.0, "lon": 0.0} for number in range(15)
@@ -362,7 +362,7 @@ def test_intermediate_stop_names_are_bounded_to_twelve_in_order():
 
 
 def test_an_omitted_intermediate_stops_array_is_null_not_empty():
-    body = fixture_support.load("plan_glw_ncl_direct.json")
+    body = fixture_support.load("synthetic_plan_glw_ncl_direct.json")
     leg = body["itineraries"][0]["legs"][0]
     del leg["intermediateStops"]
     args = {
@@ -408,7 +408,7 @@ def test_absent_tri_state_members_map_to_null_and_are_never_invented():
 
 
 def test_a_leg_without_realtime_members_is_null_not_false():
-    body = fixture_support.load("plan_ayr_ncl_coord.json")
+    body = fixture_support.load("synthetic_plan_ayr_ncl_coord.json")
     leg = body["itineraries"][0]["legs"][1]
     leg.pop("realTime")
     leg.pop("scheduled")

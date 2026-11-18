@@ -1,0 +1,30 @@
+[
+  {
+    "type": "STOP",
+    "name": "Newcastle",
+    "id": "gb-great-britain_9100NWCSTLE",
+    "lat": 54.968338,
+    "lon": -1.616046,
+    "tokens": ["newcastle"],
+    "areas": ["Newcastle upon Tyne"],
+    "score": 0.9,
+    "country": "GB",
+    "tz": "Europe/London",
+    "modes": ["RAIL", "REGIONAL_RAIL"],
+    "importance": 0.8
+  },
+  {
+    "type": "STOP",
+    "name": "Newcastle Central",
+    "id": "gb-great-britain_940GZZTWCST",
+    "lat": 54.9676,
+    "lon": -1.6173,
+    "tokens": ["newcastle", "central"],
+    "areas": ["Newcastle upon Tyne"],
+    "score": 0.85,
+    "country": "GB",
+    "tz": "Europe/London",
+    "modes": ["RAIL"],
+    "importance": 0.6
+  }
+]

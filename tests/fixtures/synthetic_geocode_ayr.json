@@ -1,0 +1,49 @@
+[
+  {
+    "type": "PLACE",
+    "name": "Ayr",
+    "id": "gb-synthetic-place-ayr",
+    "lat": 55.458,
+    "lon": -4.626,
+    "tokens": ["ayr"],
+    "areas": ["South Ayrshire", "Scotland"],
+    "score": 0.91,
+    "country": "GB",
+    "tz": "Europe/London",
+    "category": "town",
+    "zip": "KA7 1",
+    "street": "High Street",
+    "houseNumber": "1",
+    "level": 0.0,
+    "modes": ["BUS"],
+    "importance": 0.62
+  },
+  {
+    "type": "STOP",
+    "name": "Ayr",
+    "id": "gb-great-britain_9100AYRR3",
+    "lat": 55.45814,
+    "lon": -4.6258755,
+    "tokens": ["ayr", "station"],
+    "areas": ["South Ayrshire"],
+    "score": 0.88,
+    "country": "GB",
+    "tz": "Europe/London",
+    "modes": ["REGIONAL_RAIL"],
+    "importance": 0.7
+  },
+  {
+    "type": "PLACE",
+    "name": "Ayr",
+    "id": "au-synthetic-place-ayr",
+    "lat": -19.5736,
+    "lon": 147.4025,
+    "tokens": ["ayr"],
+    "areas": ["Queensland"],
+    "score": 0.41,
+    "country": "AU",
+    "tz": "Australia/Brisbane",
+    "category": "town",
+    "importance": 0.2
+  }
+]

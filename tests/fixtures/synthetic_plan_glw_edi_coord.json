@@ -1,0 +1,347 @@
+{
+  "requestParameters": {},
+  "debugOutput": {},
+  "from": {
+    "name": "START",
+    "lat": 55.858315,
+    "lon": -4.258436
+  },
+  "to": {
+    "name": "END",
+    "lat": 55.9527965,
+    "lon": -3.1877235
+  },
+  "direct": [],
+  "itineraries": [
+    {
+      "id": "synthetic-glw-edi-1",
+      "duration": 4620,
+      "startTime": "2026-10-27T09:00:00Z",
+      "endTime": "2026-10-27T10:17:00Z",
+      "transfers": 1,
+      "legs": [
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T09:00:00Z",
+          "endTime": "2026-10-27T09:11:00Z",
+          "scheduled": true,
+          "duration": 660,
+          "from": {
+            "name": "START",
+            "lat": 55.858315,
+            "lon": -4.258436,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Glasgow Central",
+            "stopId": "gb-great-britain_9100GLGC",
+            "parentId": "gb-great-britain_910GGLGC",
+            "lat": 55.858,
+            "lon": -4.258,
+            "tz": "Europe/London",
+            "vertexType": "TRANSIT"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-edinburgh-access",
+            "precision": 6,
+            "length": 5
+          }
+        },
+        {
+          "mode": "SUBWAY",
+          "startTime": "2026-10-27T09:11:00Z",
+          "endTime": "2026-10-27T09:13:00Z",
+          "scheduled": true,
+          "duration": 120,
+          "routeShortName": "SPT",
+          "headsign": "Buchanan Street",
+          "from": {
+            "name": "Glasgow Central",
+            "stopId": "gb-great-britain_9100GLGC",
+            "parentId": "gb-great-britain_910GGLGC",
+            "lat": 55.858,
+            "lon": -4.258,
+            "tz": "Europe/London",
+            "vertexType": "TRANSIT"
+          },
+          "to": {
+            "name": "Buchanan Street",
+            "stopId": "gb-great-britain_9400ZZGLBUC",
+            "lat": 55.862,
+            "lon": -4.253,
+            "tz": "Europe/London",
+            "vertexType": "TRANSIT"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-subway",
+            "precision": 6,
+            "length": 3
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T09:13:00Z",
+          "endTime": "2026-10-27T09:17:00Z",
+          "scheduled": true,
+          "duration": 240,
+          "from": {
+            "name": "Buchanan Street",
+            "stopId": "gb-great-britain_9400ZZGLBUC",
+            "lat": 55.862,
+            "lon": -4.253,
+            "tz": "Europe/London",
+            "vertexType": "TRANSIT"
+          },
+          "to": {
+            "name": "Glasgow Queen Street",
+            "stopId": "gb-great-britain_9100GLGQ",
+            "parentId": "gb-great-britain_910GGLGQ",
+            "lat": 55.862,
+            "lon": -4.251,
+            "tz": "Europe/London",
+            "vertexType": "TRANSIT"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-transfer",
+            "precision": 6,
+            "length": 2
+          }
+        },
+        {
+          "mode": "RAIL",
+          "startTime": "2026-10-27T09:19:00Z",
+          "endTime": "2026-10-27T10:12:00Z",
+          "scheduled": true,
+          "duration": 3180,
+          "routeShortName": "W",
+          "headsign": "Edinburgh Waverley",
+          "from": {
+            "name": "Glasgow Queen Street",
+            "stopId": "gb-great-britain_9100GLGQ",
+            "parentId": "gb-great-britain_910GGLGQ",
+            "lat": 55.862,
+            "lon": -4.251,
+            "tz": "Europe/London",
+            "vertexType": "TRANSIT"
+          },
+          "to": {
+            "name": "Edinburgh Waverley",
+            "stopId": "gb-great-britain_9100EDINW",
+            "lat": 55.9527965,
+            "lon": -3.1877235,
+            "tz": "Europe/London",
+            "vertexType": "TRANSIT"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-edinburgh-rail",
+            "precision": 6,
+            "length": 70
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T10:12:00Z",
+          "endTime": "2026-10-27T10:17:00Z",
+          "scheduled": true,
+          "duration": 300,
+          "from": {
+            "name": "Edinburgh Waverley",
+            "stopId": "gb-great-britain_9100EDINW",
+            "lat": 55.9527965,
+            "lon": -3.1877235,
+            "tz": "Europe/London",
+            "vertexType": "TRANSIT"
+          },
+          "to": {
+            "name": "END",
+            "lat": 55.9533,
+            "lon": -3.1883,
+            "tz": "Europe/London",
+            "arrival": "2026-10-27T10:17:00Z"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-edinburgh-egress",
+            "precision": 6,
+            "length": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "synthetic-glw-edi-2",
+      "duration": 4200,
+      "startTime": "2026-10-27T09:15:00Z",
+      "endTime": "2026-10-27T10:25:00Z",
+      "transfers": 0,
+      "legs": [
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T09:15:00Z",
+          "endTime": "2026-10-27T09:20:00Z",
+          "scheduled": true,
+          "duration": 300,
+          "from": {
+            "name": "START",
+            "lat": 55.858315,
+            "lon": -4.258436,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Glasgow Queen Street",
+            "stopId": "gb-great-britain_9100GLGQ",
+            "lat": 55.862,
+            "lon": -4.251,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-edi-2-access",
+            "precision": 6,
+            "length": 4
+          }
+        },
+        {
+          "mode": "RAIL",
+          "startTime": "2026-10-27T09:20:00Z",
+          "endTime": "2026-10-27T10:15:00Z",
+          "scheduled": true,
+          "duration": 3300,
+          "routeShortName": "W",
+          "headsign": "Edinburgh Waverley",
+          "from": {
+            "name": "Glasgow Queen Street",
+            "stopId": "gb-great-britain_9100GLGQ",
+            "lat": 55.862,
+            "lon": -4.251,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Edinburgh Waverley",
+            "stopId": "gb-great-britain_9100EDINW",
+            "lat": 55.9527965,
+            "lon": -3.1877235,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-edi-2-rail",
+            "precision": 6,
+            "length": 70
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T10:20:00Z",
+          "endTime": "2026-10-27T10:25:00Z",
+          "scheduled": true,
+          "duration": 300,
+          "from": {
+            "name": "Edinburgh Waverley",
+            "stopId": "gb-great-britain_9100EDINW",
+            "lat": 55.9527965,
+            "lon": -3.1877235,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "END",
+            "lat": 55.9533,
+            "lon": -3.1883,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-edi-2-egress",
+            "precision": 6,
+            "length": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "synthetic-glw-edi-3",
+      "duration": 4800,
+      "startTime": "2026-10-27T09:30:00Z",
+      "endTime": "2026-10-27T10:50:00Z",
+      "transfers": 0,
+      "legs": [
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T09:30:00Z",
+          "endTime": "2026-10-27T09:33:00Z",
+          "scheduled": true,
+          "duration": 180,
+          "from": {
+            "name": "START",
+            "lat": 55.858315,
+            "lon": -4.258436,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Glasgow Queen Street",
+            "stopId": "gb-great-britain_9100GLGQ",
+            "lat": 55.862,
+            "lon": -4.251,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-edi-3-access",
+            "precision": 6,
+            "length": 2
+          }
+        },
+        {
+          "mode": "RAIL",
+          "startTime": "2026-10-27T09:40:00Z",
+          "endTime": "2026-10-27T10:47:00Z",
+          "scheduled": true,
+          "duration": 4020,
+          "routeShortName": "W",
+          "headsign": "Edinburgh Waverley",
+          "from": {
+            "name": "Glasgow Queen Street",
+            "stopId": "gb-great-britain_9100GLGQ",
+            "lat": 55.862,
+            "lon": -4.251,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Edinburgh Waverley",
+            "stopId": "gb-great-britain_9100EDINW",
+            "lat": 55.9527965,
+            "lon": -3.1877235,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-edi-3-rail",
+            "precision": 6,
+            "length": 70
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T10:47:00Z",
+          "endTime": "2026-10-27T10:50:00Z",
+          "scheduled": true,
+          "duration": 180,
+          "from": {
+            "name": "Edinburgh Waverley",
+            "stopId": "gb-great-britain_9100EDINW",
+            "lat": 55.9527965,
+            "lon": -3.1877235,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "END",
+            "lat": 55.9533,
+            "lon": -3.1883,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-edi-3-egress",
+            "precision": 6,
+            "length": 2
+          }
+        }
+      ]
+    }
+  ],
+  "previousPageCursor": null,
+  "nextPageCursor": null
+}

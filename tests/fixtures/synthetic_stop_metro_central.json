@@ -1,0 +1,11 @@
+{
+  "place": {
+    "name": "Central Station",
+    "stopId": "gb-great-britain_940GZZTWCST",
+    "lat": 54.9676,
+    "lon": -1.6173,
+    "tz": "Europe/London",
+    "vertexType": "TRANSIT",
+    "modes": ["SUBWAY", "BUS"]
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "requestParameters": {},
+  "debugOutput": {},
+  "from": {
+    "name": "START",
+    "lat": 55.858315,
+    "lon": -4.258436
+  },
+  "to": {
+    "name": "END",
+    "lat": 55.9527965,
+    "lon": -3.1877235
+  },
+  "direct": [],
+  "itineraries": [
+    {
+      "id": "synthetic-glw-edi-offset-1",
+      "duration": 4200,
+      "startTime": "2026-10-27T08:03:00Z",
+      "endTime": "2026-10-27T09:13:00Z",
+      "transfers": 0,
+      "legs": [
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T08:03:00Z",
+          "endTime": "2026-10-27T08:08:00Z",
+          "scheduled": true,
+          "duration": 300,
+          "from": {
+            "name": "START",
+            "lat": 55.858315,
+            "lon": -4.258436,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Glasgow Queen Street",
+            "stopId": "gb-great-britain_9100GLGQ",
+            "lat": 55.862,
+            "lon": -4.251,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-edi-offset-access",
+            "precision": 6,
+            "length": 3
+          }
+        },
+        {
+          "mode": "RAIL",
+          "startTime": "2026-10-27T08:10:00Z",
+          "endTime": "2026-10-27T09:10:00Z",
+          "scheduled": true,
+          "duration": 3600,
+          "routeShortName": "W",
+          "headsign": "Edinburgh Waverley",
+          "from": {
+            "name": "Glasgow Queen Street",
+            "stopId": "gb-great-britain_9100GLGQ",
+            "lat": 55.862,
+            "lon": -4.251,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Edinburgh Waverley",
+            "stopId": "gb-great-britain_9100EDINW",
+            "lat": 55.9527965,
+            "lon": -3.1877235,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-edi-offset-rail",
+            "precision": 6,
+            "length": 70
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T09:10:00Z",
+          "endTime": "2026-10-27T09:13:00Z",
+          "scheduled": true,
+          "duration": 180,
+          "from": {
+            "name": "Edinburgh Waverley",
+            "stopId": "gb-great-britain_9100EDINW",
+            "lat": 55.9527965,
+            "lon": -3.1877235,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "END",
+            "lat": 55.9533,
+            "lon": -3.1883,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-edi-offset-egress",
+            "precision": 6,
+            "length": 2
+          }
+        }
+      ]
+    }
+  ],
+  "previousPageCursor": null,
+  "nextPageCursor": null
+}

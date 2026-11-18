@@ -1,0 +1,18 @@
+{
+  "requestParameters": {},
+  "debugOutput": {},
+  "from": {
+    "name": "Ayr",
+    "lat": 55.458267,
+    "lon": -4.625827
+  },
+  "to": {
+    "name": "Newcastle",
+    "lat": 54.968338,
+    "lon": -1.616046
+  },
+  "direct": [],
+  "itineraries": [],
+  "previousPageCursor": "EARLIER|1815641999",
+  "nextPageCursor": "LATER|1815642000"
+}

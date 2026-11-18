@@ -1,0 +1,23 @@
+{
+  "requestParameters": {},
+  "debugOutput": {},
+  "from": { "name": "gb-great-britain_910GGLGC", "stopId": "gb-great-britain_910GGLGC", "lat": 55.858, "lon": -4.258, "tz": "Europe/London" },
+  "to": { "name": "gb-great-britain_910GEDINW", "stopId": "gb-great-britain_910GEDINW", "lat": 55.9527965, "lon": -3.1877235, "tz": "Europe/London" },
+  "direct": [],
+  "itineraries": [
+    {
+      "id": "synthetic-glw-edi-stopids-1",
+      "duration": 3900,
+      "startTime": "2026-10-27T09:00:00Z",
+      "endTime": "2026-10-27T10:05:00Z",
+      "transfers": 0,
+      "legs": [
+        { "mode": "WALK", "startTime": "2026-10-27T09:00:00Z", "endTime": "2026-10-27T09:05:00Z", "scheduled": true, "duration": 300, "from": { "name": "Glasgow Queen Street", "stopId": "gb-great-britain_9100GLGQ", "lat": 55.862, "lon": -4.251, "tz": "Europe/London" }, "to": { "name": "Glasgow Queen Street", "stopId": "gb-great-britain_9100GLGQ", "lat": 55.862, "lon": -4.251, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-glw-edi-stopids-a", "precision": 6, "length": 1 } },
+        { "mode": "RAIL", "startTime": "2026-10-27T09:10:00Z", "endTime": "2026-10-27T10:00:00Z", "scheduled": true, "duration": 3000, "routeShortName": "W", "headsign": "Edinburgh Waverley", "from": { "name": "Glasgow Queen Street", "stopId": "gb-great-britain_9100GLGQ", "lat": 55.862, "lon": -4.251, "tz": "Europe/London" }, "to": { "name": "Edinburgh Waverley", "stopId": "gb-great-britain_9100EDINW", "lat": 55.9527965, "lon": -3.1877235, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-glw-edi-stopids-b", "precision": 6, "length": 70 } },
+        { "mode": "WALK", "startTime": "2026-10-27T10:00:00Z", "endTime": "2026-10-27T10:05:00Z", "scheduled": true, "duration": 300, "from": { "name": "Edinburgh Waverley", "stopId": "gb-great-britain_9100EDINW", "lat": 55.9527965, "lon": -3.1877235, "tz": "Europe/London" }, "to": { "name": "Edinburgh Waverley", "stopId": "gb-great-britain_9100EDINW", "lat": 55.9527965, "lon": -3.1877235, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-glw-edi-stopids-c", "precision": 6, "length": 1 } }
+      ]
+    }
+  ],
+  "previousPageCursor": null,
+  "nextPageCursor": null
+}

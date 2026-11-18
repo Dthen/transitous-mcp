@@ -1,0 +1,23 @@
+{
+  "requestParameters": {},
+  "debugOutput": {},
+  "from": { "name": "Ayr", "stopId": "gb-great-britain_910GAYRR", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" },
+  "to": { "name": "Newcastle", "stopId": "gb-great-britain_910GNWCSTLE", "lat": 54.968338, "lon": -1.616046, "tz": "Europe/London" },
+  "direct": [],
+  "itineraries": [
+    {
+      "id": "synthetic-naive-arriveby-1",
+      "duration": 5400,
+      "startTime": "2026-10-27T20:00:00Z",
+      "endTime": "2026-10-27T21:30:00Z",
+      "transfers": 0,
+      "legs": [
+        { "mode": "WALK", "startTime": "2026-10-27T20:00:00Z", "endTime": "2026-10-27T20:05:00Z", "scheduled": true, "duration": 300, "from": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "to": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-naive-arriveby-a", "precision": 6, "length": 1 } },
+        { "mode": "LONG_DISTANCE", "startTime": "2026-10-27T20:05:00Z", "endTime": "2026-10-27T21:20:00Z", "scheduled": true, "duration": 4500, "routeShortName": "XC", "headsign": "Newcastle", "from": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "to": { "name": "Newcastle", "stopId": "gb-great-britain_9100NWCSTLE", "lat": 54.968338, "lon": -1.616046, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-naive-arriveby-b", "precision": 6, "length": 150 } },
+        { "mode": "WALK", "startTime": "2026-10-27T21:20:00Z", "endTime": "2026-10-27T21:30:00Z", "scheduled": true, "duration": 600, "from": { "name": "Newcastle", "stopId": "gb-great-britain_9100NWCSTLE", "lat": 54.968338, "lon": -1.616046, "tz": "Europe/London" }, "to": { "name": "Newcastle", "stopId": "gb-great-britain_9100NWCSTLE", "lat": 54.968338, "lon": -1.616046, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-naive-arriveby-c", "precision": 6, "length": 2 } }
+      ]
+    }
+  ],
+  "previousPageCursor": null,
+  "nextPageCursor": null
+}

@@ -1,0 +1,72 @@
+{
+  "page1": {
+    "requestParameters": {},
+    "debugOutput": {},
+    "from": { "name": "START", "lat": 55.858315, "lon": -4.258436 },
+    "to": { "name": "END", "lat": 55.458267, "lon": -4.625827 },
+    "direct": [],
+    "itineraries": [
+      {
+        "id": "synthetic-return-itinerary-0",
+        "duration": 4200,
+        "startTime": "2026-10-28T06:35:00Z",
+        "endTime": "2026-10-28T07:45:00Z",
+        "transfers": 0,
+        "legs": [
+          { "mode": "WALK", "startTime": "2026-10-28T06:35:00Z", "endTime": "2026-10-28T06:40:00Z", "scheduled": true, "duration": 300, "from": { "name": "START", "lat": 55.858315, "lon": -4.258436, "tz": "Europe/London" }, "to": { "name": "Glasgow Queen Street", "stopId": "gb-great-britain_9100GLGQ", "lat": 55.862, "lon": -4.251, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-return-p1-0a", "precision": 6, "length": 2 } },
+          { "mode": "RAIL", "startTime": "2026-10-28T06:40:00Z", "endTime": "2026-10-28T07:40:00Z", "scheduled": true, "duration": 3600, "routeShortName": "1", "headsign": "Ayr", "from": { "name": "Glasgow Queen Street", "stopId": "gb-great-britain_9100GLGQ", "lat": 55.862, "lon": -4.251, "tz": "Europe/London" }, "to": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-return-p1-0b", "precision": 6, "length": 40 } },
+          { "mode": "WALK", "startTime": "2026-10-28T07:40:00Z", "endTime": "2026-10-28T07:45:00Z", "scheduled": true, "duration": 300, "from": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "to": { "name": "END", "lat": 55.458267, "lon": -4.625827, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-return-p1-0c", "precision": 6, "length": 2 } }
+        ]
+      },
+      {
+        "id": "synthetic-return-itinerary-1",
+        "duration": 4200,
+        "startTime": "2026-10-28T06:50:00Z",
+        "endTime": "2026-10-28T08:00:00Z",
+        "transfers": 0,
+        "legs": [
+          { "mode": "WALK", "startTime": "2026-10-28T06:50:00Z", "endTime": "2026-10-28T06:55:00Z", "scheduled": true, "duration": 300, "from": { "name": "START", "lat": 55.858315, "lon": -4.258436, "tz": "Europe/London" }, "to": { "name": "Glasgow Queen Street", "stopId": "gb-great-britain_9100GLGQ", "lat": 55.862, "lon": -4.251, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-return-p1-1a", "precision": 6, "length": 2 } },
+          { "mode": "RAIL", "startTime": "2026-10-28T06:55:00Z", "endTime": "2026-10-28T07:55:00Z", "scheduled": true, "duration": 3600, "routeShortName": "1", "headsign": "Ayr", "from": { "name": "Glasgow Queen Street", "stopId": "gb-great-britain_9100GLGQ", "lat": 55.862, "lon": -4.251, "tz": "Europe/London" }, "to": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-return-p1-1b", "precision": 6, "length": 40 } },
+          { "mode": "WALK", "startTime": "2026-10-28T07:55:00Z", "endTime": "2026-10-28T08:00:00Z", "scheduled": true, "duration": 300, "from": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "to": { "name": "END", "lat": 55.458267, "lon": -4.625827, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-return-p1-1c", "precision": 6, "length": 2 } }
+        ]
+      }
+    ],
+    "previousPageCursor": "EARLIER|1793170800",
+    "nextPageCursor": "LATER|1793098920"
+  },
+  "page2": {
+    "requestParameters": {},
+    "debugOutput": {},
+    "from": { "name": "START", "lat": 55.858315, "lon": -4.258436 },
+    "to": { "name": "END", "lat": 55.458267, "lon": -4.625827 },
+    "direct": [],
+    "itineraries": [
+      {
+        "id": "synthetic-return-itinerary-2",
+        "duration": 4200,
+        "startTime": "2026-10-28T07:05:00Z",
+        "endTime": "2026-10-28T08:15:00Z",
+        "transfers": 0,
+        "legs": [
+          { "mode": "WALK", "startTime": "2026-10-28T07:05:00Z", "endTime": "2026-10-28T07:10:00Z", "scheduled": true, "duration": 300, "from": { "name": "START", "lat": 55.858315, "lon": -4.258436, "tz": "Europe/London" }, "to": { "name": "Glasgow Queen Street", "stopId": "gb-great-britain_9100GLGQ", "lat": 55.862, "lon": -4.251, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-return-p2-2a", "precision": 6, "length": 2 } },
+          { "mode": "RAIL", "startTime": "2026-10-28T07:10:00Z", "endTime": "2026-10-28T08:10:00Z", "scheduled": true, "duration": 3600, "routeShortName": "1", "headsign": "Ayr", "from": { "name": "Glasgow Queen Street", "stopId": "gb-great-britain_9100GLGQ", "lat": 55.862, "lon": -4.251, "tz": "Europe/London" }, "to": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-return-p2-2b", "precision": 6, "length": 40 } },
+          { "mode": "WALK", "startTime": "2026-10-28T08:10:00Z", "endTime": "2026-10-28T08:15:00Z", "scheduled": true, "duration": 300, "from": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "to": { "name": "END", "lat": 55.458267, "lon": -4.625827, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-return-p2-2c", "precision": 6, "length": 2 } }
+        ]
+      },
+      {
+        "id": "synthetic-return-itinerary-0",
+        "duration": 4200,
+        "startTime": "2026-10-28T07:20:00Z",
+        "endTime": "2026-10-28T08:30:00Z",
+        "transfers": 0,
+        "legs": [
+          { "mode": "WALK", "startTime": "2026-10-28T07:20:00Z", "endTime": "2026-10-28T07:25:00Z", "scheduled": true, "duration": 300, "from": { "name": "START", "lat": 55.858315, "lon": -4.258436, "tz": "Europe/London" }, "to": { "name": "Glasgow Queen Street", "stopId": "gb-great-britain_9100GLGQ", "lat": 55.862, "lon": -4.251, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-return-p2-0a", "precision": 6, "length": 2 } },
+          { "mode": "RAIL", "startTime": "2026-10-28T07:25:00Z", "endTime": "2026-10-28T08:25:00Z", "scheduled": true, "duration": 3600, "routeShortName": "1", "headsign": "Ayr", "from": { "name": "Glasgow Queen Street", "stopId": "gb-great-britain_9100GLGQ", "lat": 55.862, "lon": -4.251, "tz": "Europe/London" }, "to": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-return-p2-0b", "precision": 6, "length": 40 } },
+          { "mode": "WALK", "startTime": "2026-10-28T08:25:00Z", "endTime": "2026-10-28T08:30:00Z", "scheduled": true, "duration": 300, "from": { "name": "Ayr", "stopId": "gb-great-britain_9100AYRR3", "lat": 55.45814, "lon": -4.6258755, "tz": "Europe/London" }, "to": { "name": "END", "lat": 55.458267, "lon": -4.625827, "tz": "Europe/London" }, "legGeometry": { "points": "synthetic-return-p2-0c", "precision": 6, "length": 2 } }
+        ]
+      }
+    ],
+    "previousPageCursor": "EARLIER|1793098920",
+    "nextPageCursor": "LATER|1793106000"
+  }
+}

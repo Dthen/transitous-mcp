@@ -1,0 +1,72 @@
+[
+  {
+    "type": "STOP",
+    "name": "Manchester Piccadilly Bus Station",
+    "id": "gb-great-britain_1800EB00001",
+    "lat": 53.4771,
+    "lon": -2.2305,
+    "tokens": ["manchester", "piccadilly", "bus"],
+    "areas": ["Manchester"],
+    "score": 0.93,
+    "country": "GB",
+    "tz": "Europe/London",
+    "modes": ["BUS"],
+    "importance": 0.5
+  },
+  {
+    "type": "PLACE",
+    "name": "Manchester Piccadilly Station",
+    "id": "gb-synthetic-place-manchester-piccadilly",
+    "lat": 53.4774,
+    "lon": -2.2309,
+    "tokens": ["manchester", "piccadilly", "station"],
+    "areas": ["Manchester"],
+    "score": 0.9,
+    "country": "GB",
+    "tz": "Europe/London",
+    "category": "railway_station",
+    "importance": 0.7
+  },
+  {
+    "type": "ADDRESS",
+    "name": "Piccadilly Station Approach",
+    "id": "",
+    "lat": 53.477,
+    "lon": -2.2315,
+    "tokens": ["piccadilly", "station", "approach"],
+    "areas": ["Manchester"],
+    "score": 0.8,
+    "country": "GB",
+    "street": "Station Approach",
+    "houseNumber": "1"
+  },
+  {
+    "type": "STOP",
+    "name": "Piccadilly (Stop E)",
+    "id": "gb-great-britain_1800EB13971",
+    "lat": 53.4768,
+    "lon": -2.2302,
+    "tokens": ["piccadilly"],
+    "areas": ["Manchester"],
+    "score": 0.76,
+    "country": "GB",
+    "tz": "Europe/London",
+    "importance": 0.0,
+    "modes": []
+  },
+  {
+    "type": "STOP",
+    "name": "Manchester Piccadilly",
+    "id": "gb-great-britain_910GMNCRPIC",
+    "lat": 53.4774,
+    "lon": -2.2309,
+    "tokens": ["manchester", "piccadilly"],
+    "areas": ["Manchester"],
+    "score": 0.7,
+    "country": "GB",
+    "tz": "Europe/London",
+    "modes": ["REGIONAL_RAIL", "LONG_DISTANCE"],
+    "importance": 0.8,
+    "level": -1.0
+  }
+]

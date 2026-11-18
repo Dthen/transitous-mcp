@@ -1,0 +1,159 @@
+{
+  "requestParameters": {},
+  "debugOutput": {},
+  "from": {
+    "name": "gb-great-britain_910GGLGC",
+    "stopId": "gb-great-britain_910GGLGC",
+    "lat": 55.858,
+    "lon": -4.258,
+    "tz": "Europe/London"
+  },
+  "to": {
+    "name": "gb-great-britain_910GNWCSTLE",
+    "stopId": "gb-great-britain_910GNWCSTLE",
+    "lat": 54.968338,
+    "lon": -1.616046,
+    "tz": "Europe/London"
+  },
+  "direct": [],
+  "itineraries": [
+    {
+      "id": "synthetic-glw-ncl-direct-1",
+      "duration": 12900,
+      "startTime": "2026-10-27T06:00:00Z",
+      "endTime": "2026-10-27T09:35:00Z",
+      "transfers": 0,
+      "legs": [
+        {
+          "mode": "LONG_DISTANCE",
+          "startTime": "2026-10-27T06:00:00Z",
+          "endTime": "2026-10-27T09:35:00Z",
+          "scheduled": true,
+          "realTime": false,
+          "duration": 12900,
+          "routeShortName": "VT",
+          "routeLongName": "Glasgow Central to Newcastle",
+          "headsign": "Newcastle",
+          "tripId": "synthetic-glw-ncl-through",
+          "from": {
+            "name": "Glasgow Central",
+            "stopId": "gb-great-britain_910GGLGC",
+            "lat": 55.858,
+            "lon": -4.258,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Newcastle",
+            "stopId": "gb-great-britain_910GNWCSTLE",
+            "lat": 54.968338,
+            "lon": -1.616046,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-ncl-rail",
+            "precision": 6,
+            "length": 150
+          },
+          "intermediateStops": [
+            {
+              "name": "Motherwell",
+              "stopId": "gb-great-britain_9100MTHRWEL",
+              "lat": 55.792,
+              "lon": -3.994,
+              "tz": "Europe/London",
+              "arrival": "2026-10-27T06:20:00Z",
+              "departure": "2026-10-27T06:22:00Z"
+            },
+            {
+              "name": "Edinburgh",
+              "stopId": "gb-great-britain_9100EDINW",
+              "lat": 55.9527965,
+              "lon": -3.1877235,
+              "tz": "Europe/London",
+              "arrival": "2026-10-27T07:05:00Z",
+              "departure": "2026-10-27T07:07:00Z"
+            },
+            {
+              "name": "Berwick-upon-Tweed",
+              "stopId": "gb-great-britain_9100BRWCK",
+              "lat": 55.774,
+              "lon": -2.011,
+              "tz": "Europe/London",
+              "arrival": "2026-10-27T07:45:00Z",
+              "departure": "2026-10-27T07:47:00Z"
+            },
+            {
+              "name": "Alnmouth",
+              "stopId": "gb-great-britain_9100ALNMOTH",
+              "lat": 55.393,
+              "lon": -1.637,
+              "tz": "Europe/London",
+              "arrival": "2026-10-27T08:15:00Z",
+              "departure": "2026-10-27T08:17:00Z"
+            },
+            {
+              "name": "Morpeth",
+              "stopId": "gb-great-britain_9100MORPETH",
+              "lat": 55.167,
+              "lon": -1.689,
+              "tz": "Europe/London",
+              "arrival": "2026-10-27T08:35:00Z",
+              "departure": "2026-10-27T08:37:00Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "synthetic-glw-ncl-direct-2",
+      "duration": 13800,
+      "startTime": "2026-10-27T06:30:00Z",
+      "endTime": "2026-10-27T10:20:00Z",
+      "transfers": 0,
+      "legs": [
+        {
+          "mode": "LONG_DISTANCE",
+          "startTime": "2026-10-27T06:30:00Z",
+          "endTime": "2026-10-27T10:20:00Z",
+          "scheduled": true,
+          "realTime": false,
+          "duration": 13800,
+          "routeShortName": "VT",
+          "headsign": "Newcastle",
+          "from": {
+            "name": "Glasgow Central",
+            "stopId": "gb-great-britain_910GGLGC",
+            "lat": 55.858,
+            "lon": -4.258,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Newcastle",
+            "stopId": "gb-great-britain_910GNWCSTLE",
+            "lat": 54.968338,
+            "lon": -1.616046,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-glw-ncl-2-rail",
+            "precision": 6,
+            "length": 150
+          },
+          "intermediateStops": [
+            {
+              "name": "Edinburgh",
+              "stopId": "gb-great-britain_9100EDINW",
+              "lat": 55.9527965,
+              "lon": -3.1877235,
+              "tz": "Europe/London",
+              "arrival": "2026-10-27T07:30:00Z",
+              "departure": "2026-10-27T07:32:00Z"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "previousPageCursor": null,
+  "nextPageCursor": null
+}

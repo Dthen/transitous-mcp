@@ -1,0 +1,113 @@
+{
+  "requestParameters": {},
+  "debugOutput": {},
+  "from": {
+    "name": "START",
+    "lat": 55.458267,
+    "lon": -4.625827
+  },
+  "to": {
+    "name": "END",
+    "lat": 54.968338,
+    "lon": -1.616046
+  },
+  "direct": [],
+  "itineraries": [
+    {
+      "id": "synthetic-cancelled-transit-leg-1",
+      "duration": 4200,
+      "startTime": "2026-10-27T09:00:00Z",
+      "endTime": "2026-10-27T10:10:00Z",
+      "transfers": 0,
+      "legs": [
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T09:00:00Z",
+          "endTime": "2026-10-27T09:05:00Z",
+          "scheduled": true,
+          "duration": 300,
+          "from": {
+            "name": "START",
+            "lat": 55.458267,
+            "lon": -4.625827,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "Ayr",
+            "stopId": "gb-great-britain_910GAYRR",
+            "lat": 55.45814,
+            "lon": -4.6258755,
+            "tz": "Europe/London",
+            "cancelled": true
+          },
+          "legGeometry": {
+            "points": "synthetic-cancelled-transit-access",
+            "precision": 6,
+            "length": 2
+          }
+        },
+        {
+          "mode": "REGIONAL_RAIL",
+          "startTime": "2026-10-27T09:05:00Z",
+          "endTime": "2026-10-27T10:05:00Z",
+          "scheduled": true,
+          "realTime": true,
+          "duration": 3600,
+          "cancelled": true,
+          "routeShortName": "1",
+          "headsign": "Glasgow Central",
+          "from": {
+            "name": "Ayr",
+            "stopId": "gb-great-britain_910GAYRR",
+            "lat": 55.45814,
+            "lon": -4.6258755,
+            "tz": "Europe/London",
+            "vertexType": "TRANSIT",
+            "cancelled": true
+          },
+          "to": {
+            "name": "Glasgow Central",
+            "stopId": "gb-great-britain_910GGLGC",
+            "lat": 55.858,
+            "lon": -4.258,
+            "tz": "Europe/London",
+            "vertexType": "TRANSIT",
+            "cancelled": true
+          },
+          "legGeometry": {
+            "points": "synthetic-cancelled-transit-rail",
+            "precision": 6,
+            "length": 40
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T10:05:00Z",
+          "endTime": "2026-10-27T10:10:00Z",
+          "scheduled": true,
+          "duration": 300,
+          "from": {
+            "name": "Glasgow Central",
+            "stopId": "gb-great-britain_910GGLGC",
+            "lat": 55.858,
+            "lon": -4.258,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "END",
+            "lat": 54.968338,
+            "lon": -1.616046,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-cancelled-transit-egress",
+            "precision": 6,
+            "length": 2
+          }
+        }
+      ]
+    }
+  ],
+  "previousPageCursor": null,
+  "nextPageCursor": null
+}

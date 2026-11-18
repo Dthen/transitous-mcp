@@ -1,0 +1,16 @@
+[
+  {
+    "type": "STOP",
+    "name": "Manchester Piccadilly",
+    "id": "gb-great-britain_910GMNCRPIC",
+    "lat": 53.4774,
+    "lon": -2.2309,
+    "tokens": ["manchester", "piccadilly"],
+    "areas": ["Manchester"],
+    "score": 0.88,
+    "country": "GB",
+    "tz": "Europe/London",
+    "modes": ["REGIONAL_RAIL", "LONG_DISTANCE"],
+    "importance": 0.8
+  }
+]

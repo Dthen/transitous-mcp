@@ -190,7 +190,7 @@ def test_a_nonexistent_clock_is_rejected_without_issuing_a_request():
     assert calls == []
 
 
-# ── the recorded offset capture agrees with the model ───────────────
+# ── the constructed offset example agrees with the model ────────────
 
 
 def test_to_instant_returns_the_single_valid_instant_and_refuses_a_fold():
@@ -227,6 +227,6 @@ def test_the_recorded_offset_capture_is_the_instant_the_model_computes():
         "2026-10-27T09:00:00+01:00", endpoint_zone="Europe/London"
     )
     assert frame.wire_value == "2026-10-27T08:00:00Z"
-    # the captured plan for that request started at 08:03Z, i.e. inside the instant's morning
-    plan = fs.load("plan_glw_edi_offset.json")
+    # the constructed plan for that request started at 08:03Z, i.e. inside the instant's morning
+    plan = fs.load("synthetic_plan_glw_edi_offset.json")
     assert plan["itineraries"][0]["startTime"].startswith("2026-10-27T08:")

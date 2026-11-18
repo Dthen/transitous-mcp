@@ -14,8 +14,9 @@ URL the tools actually assembled is logged by the fake transport; an unmatched U
 is recorded and raised, never handed to a socket. The socket module is sealed in
 the child as a second guarantee.
 
-Captured bodies come from the external scratch corpus through
-``fixture_support``. Constructed bodies are inline and labelled ``synthetic``.
+Example bodies come from the checked-in constructed fixtures through
+``fixture_support``. Bodies built inside a test are inline and labelled
+``synthetic``.
 """
 
 import json
@@ -348,7 +349,7 @@ def one_value(url, name):
     return values[0]
 
 
-def observed(name):
+def fixture_body(name):
     return fixture_support.load(name)
 
 
@@ -510,7 +511,7 @@ def test_descriptions_state_the_new_contracts(tmp_path):
 
 
 def test_plan_success_is_one_canonical_envelope_and_one_real_url(tmp_path):
-    body = observed("plan_ayr_ncl_stopids_n3.json")
+    body = fixture_body("synthetic_plan_ayr_ncl_stopids_n3.json")
     with Session(tmp_path, [route("/api/v6/plan", body)], "plan") as session:
         response = session.call(
             "transit_plan",
@@ -594,7 +595,7 @@ def test_plan_success_is_one_canonical_envelope_and_one_real_url(tmp_path):
 
 
 def test_plan_max_results_truncation_is_reported_not_inferred(tmp_path):
-    body = observed("plan_ayr_ncl_stopids_n3.json")
+    body = fixture_body("synthetic_plan_ayr_ncl_stopids_n3.json")
     with Session(tmp_path, [route("/api/v6/plan", body)], "truncation") as session:
         payload = tool_payload(
             session.call(
@@ -626,7 +627,7 @@ def assert_one_request(session, path):
 
 
 def test_geocode_success_identity_filters_and_bounded_count(tmp_path):
-    body = observed("geocode_ayr_station.json")
+    body = fixture_body("synthetic_geocode_ayr_station.json")
     with Session(tmp_path, [route("/api/v1/geocode", body)], "geocode") as session:
         payload = tool_payload(
             session.call(
@@ -657,7 +658,7 @@ def test_geocode_success_identity_filters_and_bounded_count(tmp_path):
 
 
 def test_departures_success_keeps_scheduled_and_realtime_apart(tmp_path):
-    body = observed("stoptimes_ayr_p3.json")
+    body = fixture_body("synthetic_stoptimes_ayr_p3.json")
     with Session(tmp_path, [route("/api/v6/stoptimes", body)], "departures") as session:
         payload = tool_payload(
             session.call(
@@ -690,7 +691,7 @@ def test_departures_success_keeps_scheduled_and_realtime_apart(tmp_path):
 
 
 def test_trip_success_reports_intermediate_stops(tmp_path):
-    body = observed("synthetic_trip_intermediate_stops.json")
+    body = fixture_body("synthetic_trip_intermediate_stops.json")
     with Session(tmp_path, [route("/api/v6/trip", body)], "trip") as session:
         payload = tool_payload(session.call("transit_trip", {"trip_id": "synthetic-trip-1"}))
     assert payload["outcome"] == "ok"
@@ -708,7 +709,7 @@ def test_trip_success_reports_intermediate_stops(tmp_path):
 
 
 def test_map_trips_success_has_no_position_field(tmp_path):
-    body = observed("synthetic_map_trips_window.json")
+    body = fixture_body("synthetic_map_trips_window.json")
     with Session(tmp_path, [route("/api/v6/map/trips", body)], "map_trips") as session:
         payload = tool_payload(
             session.call(
@@ -752,11 +753,11 @@ def test_map_trips_success_has_no_position_field(tmp_path):
 
 def test_side_tools_return_the_canonical_envelope(tmp_path):
     routes = [
-        route("/api/v6/one-to-all", observed("synthetic_reachable_pareto.json")),
-        route("/api/v1/one-to-many", observed("synthetic_one_to_many_street.json")),
+        route("/api/v6/one-to-all", fixture_body("synthetic_reachable_pareto.json")),
+        route("/api/v1/one-to-many", fixture_body("synthetic_one_to_many_street.json")),
         route(
             "/api/experimental/one-to-many-intermodal",
-            observed("synthetic_one_to_many_transit.json")["valid"],
+            fixture_body("synthetic_one_to_many_transit.json")["valid"],
         ),
     ]
     destinations = [[55.858315, -4.258436], [55.9527965, -3.188463], [56.0, -3.5]]
@@ -865,7 +866,7 @@ def _street_arguments(mode):
 def test_one_to_many_mode_defaults_to_walk_and_echoes_each_explicit_profile(
     tmp_path, case, supplied, expected
 ):
-    routes = [route("/api/v1/one-to-many", observed("synthetic_one_to_many_street.json"))]
+    routes = [route("/api/v1/one-to-many", fixture_body("synthetic_one_to_many_street.json"))]
     with Session(tmp_path, routes, f"street_mode_{case}") as session:
         response = session.call("transit_one_to_many", _street_arguments(supplied), rid=2)
 
@@ -918,7 +919,7 @@ def test_one_to_many_present_invalid_mode_is_rejected_before_any_request(
 
 
 def _page(name):
-    return observed("synthetic_continuation_pages.json")[name]
+    return fixture_body("synthetic_continuation_pages.json")[name]
 
 
 def _shift_itinerary(itinerary, seconds):
@@ -940,7 +941,7 @@ def _shift_itinerary(itinerary, seconds):
 def _page_two_with_three_itineraries():
     """page2 plus a shifted itinerary: adjacent pages then differ in count.
 
-    Labelled synthetic and built in memory by this test; the retained corpus gives
+    Labelled synthetic and built in memory by this test; the fixtures give
     both pages two itineraries and the point is that the page reports its own
     count.
     """
@@ -1180,7 +1181,7 @@ def test_upstream_status_and_window_failures_are_typed_results(tmp_path):
     assert limited["outcome"] == "upstream_rejected"
     assert limited["error_type"] == "rate_limited"
 
-    window = observed("window_error.json")["entries"][1]
+    window = fixture_body("synthetic_window_error.json")["entries"][1]
     assert window["status"] == 400
     with Session(
         tmp_path,
@@ -1210,7 +1211,7 @@ def test_upstream_status_and_window_failures_are_typed_results(tmp_path):
 def test_malformed_upstream_body_is_a_typed_result(tmp_path):
     # A structurally valid empty body is no_routes; the same body missing a key the
     # no-routes predicate requires is malformed_upstream, never no_routes.
-    empty = observed("plan_empty_no_service.json")
+    empty = fixture_body("synthetic_plan_empty_no_service.json")
     body = json.loads(json.dumps(empty))
     body.pop("debugOutput")
     arguments = {

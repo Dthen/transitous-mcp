@@ -1,0 +1,52 @@
+{
+  "requestParameters": {},
+  "debugOutput": {},
+  "from": {
+    "name": "START",
+    "lat": 55.458267,
+    "lon": -4.625827
+  },
+  "to": {
+    "name": "END",
+    "lat": 54.968338,
+    "lon": -1.616046
+  },
+  "direct": [
+    {
+      "id": "synthetic-direct-street-only-1",
+      "duration": 12600,
+      "startTime": "2026-10-27T09:00:00Z",
+      "endTime": "2026-10-27T12:30:00Z",
+      "transfers": 0,
+      "legs": [
+        {
+          "mode": "WALK",
+          "startTime": "2026-10-27T09:00:00Z",
+          "endTime": "2026-10-27T12:30:00Z",
+          "scheduled": true,
+          "duration": 12600,
+          "from": {
+            "name": "START",
+            "lat": 55.458267,
+            "lon": -4.625827,
+            "tz": "Europe/London"
+          },
+          "to": {
+            "name": "END",
+            "lat": 54.968338,
+            "lon": -1.616046,
+            "tz": "Europe/London"
+          },
+          "legGeometry": {
+            "points": "synthetic-direct-street-only-1",
+            "precision": 6,
+            "length": 11000
+          }
+        }
+      ]
+    }
+  ],
+  "itineraries": [],
+  "previousPageCursor": null,
+  "nextPageCursor": null
+}
